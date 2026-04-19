@@ -49,11 +49,42 @@ Se alterar comportamento:
 - nunca expor segredos
 - documentar variáveis de ambiente
 
-# 📏 COESÃO
+# 📏 TAMANHO DE ARQUIVOS
 
-- priorizar responsabilidade única
-- evitar arquivos grandes (>500 linhas)
-- não dividir sem necessidade
+Não existe um limite técnico universal de linhas por arquivo, mas o agente deve manter os arquivos do projeto coesos, legíveis e fáceis de manter.
+
+Diretriz prática:
+- ideal: até 300 linhas por arquivo
+- aceitável: até 500 linhas por arquivo
+- acima de 500 linhas: revisar se o arquivo deve ser dividido
+- acima de 800 linhas: considerar exceção e manter apenas com justificativa clara
+
+O agente deve avaliar quebra quando o arquivo:
+- acumula múltiplas responsabilidades
+- mistura regra de negócio com infraestrutura, UI ou detalhes auxiliares
+- dificulta leitura, testes, revisão ou manutenção
+
+Possíveis extrações:
+- componentes
+- serviços
+- helpers
+- hooks
+- composables
+- casos de uso
+- actions
+- validadores
+- mapeadores
+- adaptadores
+- módulos internos
+
+Exceções podem incluir:
+- arquivos gerados
+- migrations
+- arquivos agregadores
+- configurações
+- pontos centrais em que a divisão prejudicaria a clareza
+
+⚠️ O agente não deve dividir arquivos só por atingir um número arbitrário. A prioridade é responsabilidade única, boa organização e facilidade de evolução.
 
 # 🎯 OBJETIVO
 
