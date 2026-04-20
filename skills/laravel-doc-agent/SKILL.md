@@ -36,6 +36,36 @@ Skill de apoio para mudanças em projetos Laravel.
 - Garantir validacao e autorizacao para endpoints alterados
 - Atualizar variaveis de ambiente quando necessario
 
+# TRATAMENTO DE ERROS (OBRIGATORIO)
+
+- Em backend Laravel, toda rota, controller, service, action, job, listener e classe de regra de negocio deve ter tratamento explicito de erro com `try/catch`
+- Sempre preferir `catch (Throwable $e)` para capturar erros e excecoes de forma abrangente
+- Ao capturar erro: registrar com contexto relevante (ex.: id do recurso, usuario, payload filtrado) e retornar resposta consistente
+- Nao engolir erro silenciosamente; sempre logar e padronizar retorno HTTP/DTO de erro
+- Se necessario, relancar com contexto adicional apos log
+
+Exemplo base:
+
+```php
+<?php
+
+use Throwable;
+use Illuminate\Support\Facades\Log;
+
+try {
+    // regra de negocio / chamada externa / persistencia
+} catch (Throwable $e) {
+    Log::error('Falha ao processar operacao X', [
+        'error' => $e->getMessage(),
+        'context' => [
+            // dados de contexto sem segredo
+        ],
+    ]);
+
+    throw $e;
+}
+```
+
 # TESTES
 
 - Executar testes focados no modulo alterado
