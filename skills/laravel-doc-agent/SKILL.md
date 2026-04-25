@@ -18,6 +18,7 @@ Skill de apoio para mudanças em projetos Laravel.
 # PADROES LARAVEL
 
 - Preferir regras já adotadas no projeto antes de introduzir novas convenções
+- Manter linhas com no máximo 120 caracteres para evitar apontamentos recorrentes do Sonar
 - Manter controllers enxutos; regra de negocio em services/actions/use-cases
 - Validacao em Form Requests quando aplicavel
 - Queries complexas em escopos, repositorios ou classes dedicadas
