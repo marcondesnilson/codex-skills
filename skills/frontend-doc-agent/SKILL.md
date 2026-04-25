@@ -21,6 +21,8 @@ Skill de apoio para mudancas de frontend (React, Vue, Next, Vite ou similar).
 - Evitar componentes gigantes; extrair partes com responsabilidade clara
 - Manter separacao entre apresentacao, estado e acesso a API
 - Reutilizar componentes e tokens existentes antes de criar novos
+- Usar um unico Tailwind por projeto; separar apenas os tokens de cor para temas light e dark
+- Todo projeto frontend deve oferecer temas light e dark para melhor adaptacao ao usuario
 
 # UX, ACESSIBILIDADE E PERFORMANCE
 
