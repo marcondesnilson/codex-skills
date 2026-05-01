@@ -49,6 +49,28 @@ Se alterar comportamento:
 - nunca expor segredos
 - documentar variáveis de ambiente
 
+# 🩺 HEALTHCHECK E STATUS
+
+Todo projeto criado ou alterado deve ter documentação e implementação mínima de health/status.
+
+Regras gerais:
+- expor um endpoint, rota ou arquivo público de liveness para monitoramento automatizado
+- expor status humano quando fizer sentido para operação, suporte ou validação de deploy
+- separar liveness de readiness quando a stack permitir
+- liveness deve ser rápido e não depender de banco, APIs externas, filas ou serviços terceiros
+- readiness deve validar dependências reais necessárias para receber tráfego
+- readiness deve diferenciar estado saudável, degradado e erro quando houver checks não críticos
+- documentar payloads, status HTTP, periodicidade, dependências verificadas e exemplos de uso
+- documentar como o healthcheck deve ser usado em Docker, Swarm, Kubernetes, CDN ou hospedagem estática
+- cobrir health/status com testes, smoke tests ou validação de build quando aplicável
+
+Diretrizes por tipo de projeto:
+- backend/API: usar endpoints como `/health/live`, `/health/ready`, `/health` e `/status`
+- frontend SPA/SSR: expor health estático ou rota pública validando build, versão e configuração essencial
+- frontend que consome API: status humano deve indicar conectividade com backend quando seguro e relevante
+- worker/CLI: disponibilizar comando, endpoint interno ou arquivo de status compatível com a infraestrutura
+- monorepo: cada projeto deve ter health próprio, e agregadores devem apenas consolidar estados existentes
+
 # 📏 TAMANHO DE ARQUIVOS
 
 Não existe um limite técnico universal de linhas por arquivo, mas o agente deve manter os arquivos do projeto coesos, legíveis e fáceis de manter.
