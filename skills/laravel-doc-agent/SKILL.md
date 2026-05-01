@@ -42,6 +42,27 @@ Skill de apoio para mudanças em projetos Laravel.
 - Armazenar segredo JWT apenas em variaveis de ambiente; nunca versionar chaves ou tokens
 - Proteger rotas autenticadas com middleware/guard JWT e cobrir fluxos de login com testes feature
 
+# AUDITORIA (OBRIGATORIO)
+
+- Todo projeto Laravel criado ou alterado deve ter auditoria base com `owen-it/laravel-auditing`
+- Adicionar/configurar `config/audit.php` com auditoria controlada por `AUDITING_ENABLED` e default `true`
+- Usar resolver de usuario considerando guards em ordem `api`, `web`
+- Auditar eventos `created`, `updated`, `deleted` e `restored`
+- Excluir globalmente campos sensiveis como `password`, `remember_token`, tokens, secrets e credenciais
+- Usar driver `database` com tabela `audits`
+- Registrar o IP publico real do usuario, nao o IP interno do servidor ou proxy
+- Em ambientes com proxy/CDN/load balancer, confiar em headers como `CF-Connecting-IP`, `True-Client-IP`
+  e `X-Forwarded-For` somente quando a origem da requisicao for confiavel
+- Em producao publica, preferir lista explicita de IPs/CIDRs dos proxies reais por variavel de ambiente
+- Quando usar `X-Forwarded-For`, extrair e validar corretamente o primeiro IP publico valido da lista
+- Se a origem da requisicao nao for confiavel, usar apenas `REMOTE_ADDR`
+- Criar migration da tabela `audits` compativel com o padrao de IDs do projeto
+- Quando o projeto usar ULID, definir `user_id` e `auditable_id` como `char(26)`
+- Modelos persistentes de dominio devem implementar `OwenIt\Auditing\Contracts\Auditable` e usar o trait
+  `OwenIt\Auditing\Auditable`, exceto quando houver justificativa explicita
+- Para telas administrativas ou historico de entidades, expor endpoints autenticados de historico quando fizer sentido
+- Documentar a implantacao da auditoria, variaveis de ambiente, modelos auditados e exemplos de retorno
+
 # TRATAMENTO DE ERROS (OBRIGATORIO)
 
 - Em backend Laravel, toda rota, controller, service, action, job, listener e classe de regra de negocio deve ter tratamento explicito de erro com `try/catch`
