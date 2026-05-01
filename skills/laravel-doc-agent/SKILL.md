@@ -36,6 +36,11 @@ Skill de apoio para mudanças em projetos Laravel.
 - Revisar impacto em migrations e compatibilidade de deploy
 - Garantir validacao e autorizacao para endpoints alterados
 - Atualizar variaveis de ambiente quando necessario
+- Para seguranca de login em APIs Laravel, usar JWT como padrao de autenticacao stateless
+- Implementar login, refresh e logout com invalidacao/rotacao de tokens quando o pacote escolhido suportar
+- Configurar expiracao curta para access token e expiracao controlada para refresh token
+- Armazenar segredo JWT apenas em variaveis de ambiente; nunca versionar chaves ou tokens
+- Proteger rotas autenticadas com middleware/guard JWT e cobrir fluxos de login com testes feature
 
 # TRATAMENTO DE ERROS (OBRIGATORIO)
 
