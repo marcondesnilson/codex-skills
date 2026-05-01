@@ -62,11 +62,31 @@ Skill de apoio para mudanças em projetos Laravel.
 - Revisar impacto em migrations e compatibilidade de deploy
 - Garantir validacao e autorizacao para endpoints alterados
 - Atualizar variaveis de ambiente quando necessario
-- Para seguranca de login em APIs Laravel, usar JWT como padrao de autenticacao stateless
-- Implementar login, refresh e logout com invalidacao/rotacao de tokens quando o pacote escolhido suportar
-- Configurar expiracao curta para access token e expiracao controlada para refresh token
-- Armazenar segredo JWT apenas em variaveis de ambiente; nunca versionar chaves ou tokens
-- Proteger rotas autenticadas com middleware/guard JWT e cobrir fluxos de login com testes feature
+
+# AUTENTICACAO JWT E SEGURANCA DE API
+
+- Para seguranca de login em APIs Laravel puras, usar JWT como padrao de autenticacao stateless
+- Em backend-only, manter rotas sem prefixo `/api` quando este for o padrao do projeto
+- Gerar segredo JWT com `php artisan jwt:secret` e manter a chave apenas em variaveis de ambiente
+- Configurar guard de API com driver `jwt`
+- Proteger rotas autenticadas com middleware `auth:api`
+- Enviar token apenas no header `Authorization: Bearer <token>`
+- Login deve validar email/senha, autenticar credenciais e retornar token no formato padronizado da API
+- Refresh deve renovar a sessao conforme TTL/refresh TTL configurados
+- Logout deve invalidar o token, usando blacklist quando o pacote JWT oferecer suporte
+- Token expirado, invalido ou ausente deve retornar `401` com resposta padronizada
+- Nao retornar stack trace, classe de exception, mensagem interna ou detalhes de infraestrutura em erros de auth
+- Respostas da API devem seguir formato consistente: `success`, `data` e `error`
+- Erros de autenticacao devem usar mensagem generica, como `Nao autorizado`
+- Aplicar rate limit especifico em login para reduzir brute force, como middleware `throttle:login`
+- Configurar TTL curto para access token e renovacao controlada por refresh
+- Usuario autenticavel deve implementar `JWTSubject` quando o pacote utilizado exigir
+- Payload JWT nao deve conter dados sensiveis, permissoes amplas demais ou informacoes mutaveis desnecessarias
+- Nunca persistir JWT em armazenamento inseguro no cliente; preferir fluxo via header `Authorization`
+- Exigir HTTPS em producao para qualquer rota que trafegue JWT
+- Permitir HTTP apenas em desenvolvimento local por configuracao explicita de ambiente
+- Sanitizar e validar inputs de login com Form Request quando aplicavel
+- Cobrir login, refresh, logout, token ausente, token invalido e token expirado com testes feature
 
 # AUDITORIA (OBRIGATORIO)
 
