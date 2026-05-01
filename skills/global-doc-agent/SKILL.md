@@ -49,6 +49,45 @@ Se alterar comportamento:
 - nunca expor segredos
 - documentar variáveis de ambiente
 
+# 🧾 SESSÃO, VISITAS E AÇÕES
+
+Todo projeto com interface, API pública, autenticação ou fluxo de usuário deve prever registro de sessões,
+visitas e ações de forma proporcional ao produto e à legislação aplicável.
+
+Objetivos:
+- permitir auditoria de ações de usuários autenticados
+- permitir análise de visitas e navegação de visitantes anônimos
+- formar base segura para métricas, recomendação, suporte, antifraude e investigação operacional
+- preservar privacidade, evitar repetição desnecessária de dados e não transformar fingerprint em identidade forte
+
+Regras gerais:
+- identificar visitantes anônimos por UID público aleatório, sem expor ID interno de banco
+- identificar sessões por UID próprio, separado do visitante e do usuário autenticado
+- registrar eventos com UID idempotente para evitar duplicidade em retry, refresh ou duplo disparo
+- normalizar IP e user-agent em entidades/referências reutilizáveis quando houver persistência relacional
+- logs de sessão, ações e analytics devem referenciar IP/user-agent normalizados quando possível
+- registrar domínio, path, URL, origem, tipo de evento, conteúdo relacionado e timestamp quando aplicável
+- separar metadados estáveis do visitante de metadados voláteis da sessão
+- evitar armazenar metadados repetidos em todo pageview quando colunas próprias resolverem o contrato
+- aplicar deduplicação por visitante, sessão, evento, path e conteúdo em janela curta configurável
+- ignorar repetição da última página/conteúdo da mesma sessão quando isso inflar contagem artificialmente
+- tratar fingerprint apenas como correlação probabilística, nunca como identidade garantida da pessoa
+- permitir consentimento/configuração para tracking de visitantes quando exigido pelo produto ou legislação
+- documentar retenção, finalidade, campos coletados, opt-out/consentimento e variáveis de ambiente
+
+Captura de IP e user-agent:
+- registrar o IP público real do cliente, não apenas o IP de servidores intermediários
+- quando houver frontend, BFF, API gateway, CDN ou proxy, preservar a cadeia de IP/user-agent com headers internos
+- confiar em headers de IP encaminhado somente quando a origem da requisição for infraestrutura confiável
+- validar listas de IPs, descartar valores inválidos e evitar aceitar headers manipuláveis diretamente do cliente
+- em ambientes públicos, preferir allowlist explícita de proxies/CDNs/load balancers por variável de ambiente
+
+Diretrizes por tipo de projeto:
+- frontend: gerar/manter UID de visitante e sessão, respeitar consentimento e enviar eventos públicos seguros
+- backend/API: receber eventos, validar payload, deduplicar, resolver IP/user-agent reais e persistir referências
+- área autenticada: registrar ações relevantes com usuário, sessão, IP/user-agent, recurso afetado e resultado
+- monorepo: preservar identidade e sessão entre projetos por contrato documentado, sem acoplar bancos indevidamente
+
 # 🩺 HEALTHCHECK E STATUS
 
 Todo projeto criado ou alterado deve ter documentação e implementação mínima de health/status.
