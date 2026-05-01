@@ -30,6 +30,32 @@ Skill de apoio para mudanças em projetos Laravel.
 - Rotas: quando Laravel for apenas backend, nao usar prefixo `/api`
 - Escopo backend-only: nao criar/manter pastas, plugins, pacotes ou assets de frontend
 
+# HEALTHCHECK E STATUS (OBRIGATORIO)
+
+- Todo backend Laravel deve expor endpoints publicos de monitoramento: `GET /health/live`, `GET /health/ready`
+  e `GET /status`
+- Manter `GET /health` como alias simples de liveness quando houver necessidade de compatibilidade
+- `GET /health/live` deve ser minimo, rapido e nao consultar banco, Redis, filas ou servicos externos
+- `GET /health/live` deve retornar `200` com payload `{"status":"ok"}` quando a aplicacao estiver viva
+- `GET /health/ready` deve verificar se a aplicacao esta pronta para receber trafego
+- Readiness deve usar checks modulares, tolerantes a falhas e com indicacao de criticidade
+- Checks recomendados: `database`, `redis`, `queue`, `workers`, `disk` e APIs externas criticas do projeto
+- Readiness deve retornar `200` com `status: ok` quando todos os checks criticos estiverem saudaveis
+- Readiness deve retornar `200` com `status: degraded` quando apenas checks nao criticos falharem
+- Readiness deve retornar `503` com `status: error` quando qualquer check critico falhar
+- Payload de readiness deve incluir `status`, `uptime`, `timestamp` e objeto `checks`
+- Cada check deve informar `status`, `latency_ms`, `critical` e detalhes seguros quando necessario
+- `GET /status` deve ser uma pagina HTML para humanos consumindo `/health/ready`
+- A pagina `/status` deve exibir status geral, API, uptime, ultima verificacao, servicos e latencia
+- A pagina `/status` pode usar tema escuro e atualizacao automatica curta, como 5 segundos
+- Docker/Swarm/Kubernetes devem usar `/health/live` no healthcheck/liveness do container
+- Nao usar `/health/ready` como healthcheck de container; readiness deve orientar roteamento/trafego
+- Organizar checks em `app/Support/Health/Checks` seguindo uma interface `HealthCheckInterface`
+- Centralizar execucao e agregacao dos checks em service dedicado, como `App\Support\Health\ReadinessService`
+- Para adicionar checks, criar classe em `app/Support/Health/Checks`, implementar `name()` e `run()`
+- Documentar endpoints, payloads, checks, criticidade e exemplos de configuracao Docker/Swarm
+- Cobrir liveness e readiness com testes feature, incluindo falha critica, falha nao critica e sucesso
+
 # DADOS E SEGURANCA
 
 - Nao expor segredos
