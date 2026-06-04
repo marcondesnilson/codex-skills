@@ -16,6 +16,10 @@ No `AGENTS.md` do repositório, mantenha apenas bootstrap curto chamando as skil
 - aplicar `laravel-doc-agent` quando a mudança for no backend Laravel
 - aplicar `frontend-doc-agent` quando a mudança for no frontend
 
+O `laravel-doc-agent` documenta padrões obrigatórios para evitar controllers gigantes:
+controllers devem apenas orquestrar HTTP, enquanto regra de negócio, validação, autorização, queries,
+serialização e integrações devem ficar em services/actions/use cases e recursos próprios do Laravel.
+
 ## Instalação (URL raw)
 
 mkdir -p .codex/skills/global-doc-agent

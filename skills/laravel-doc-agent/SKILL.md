@@ -19,10 +19,53 @@ Skill de apoio para mudanças em projetos Laravel.
 
 - Preferir regras já adotadas no projeto antes de introduzir novas convenções
 - Manter linhas com no máximo 120 caracteres para evitar apontamentos recorrentes do Sonar
-- Manter controllers enxutos; regra de negocio em services/actions/use-cases
-- Validacao em Form Requests quando aplicavel
-- Queries complexas em escopos, repositorios ou classes dedicadas
+- Manter controllers enxutos; regra de negocio em services, actions ou use cases
+- Usar recursos nativos do Laravel antes de criar solucoes manuais paralelas
+- Validacao deve ficar em Form Requests quando houver entrada HTTP com regras relevantes
+- Autorizacao deve ficar em Policies, Gates ou middleware, conforme o padrao do projeto
+- Serializacao de resposta deve usar API Resources, DTOs ou presenters quando houver contrato de API
+- Queries complexas devem ficar em escopos, query builders dedicados, repositorios ou classes de consulta
 - Evitar logica de infraestrutura misturada com regra de negocio
+
+# ARQUITETURA DE APLICACAO (OBRIGATORIO)
+
+Controllers nao devem concentrar regra de negocio. Eles devem apenas:
+- receber a request
+- acionar validacao/autorizacao
+- chamar service, action ou use case
+- transformar o resultado em response/resource
+- tratar excecoes de borda HTTP quando necessario
+
+Regra pratica para controllers:
+- ideal: ate 150 linhas por controller
+- aceitavel: ate 300 linhas quando houver muitos endpoints simples e coesos
+- acima de 300 linhas: revisar e extrair responsabilidades antes de adicionar novas funcionalidades
+- acima de 500 linhas: tratar como debito tecnico e propor refatoracao obrigatoria
+- milhares de linhas em controller nao sao aceitaveis, exceto arquivo legado com justificativa documentada
+
+Ao criar ou alterar funcionalidades Laravel:
+- criar service/action/use case para cada fluxo de negocio relevante
+- manter transacoes, integracoes externas e orquestracao de dominio fora do controller
+- mover validacao para `app/Http/Requests`
+- mover formatacao de saida para `app/Http/Resources` ou camada equivalente
+- mover regras de permissao para `app/Policies`, Gates ou middleware
+- mover efeitos assíncronos para Jobs, Events e Listeners quando fizer sentido
+- mover regras reutilizaveis de modelo para casts, accessors/mutators, observers ou domain services
+- documentar no projeto a organizacao adotada para services/actions/use cases
+
+Estruturas recomendadas, adaptando ao padrao existente:
+- `app/Services/<Dominio>/<Nome>Service.php` para servicos de dominio ou aplicacao
+- `app/Actions/<Dominio>/<Verbo><Entidade>Action.php` para casos de uso pontuais
+- `app/UseCases/<Dominio>/<Nome>UseCase.php` quando o projeto ja adotar nomenclatura de use cases
+- `app/Queries/<Dominio>/<Nome>Query.php` para consultas complexas e filtros reutilizaveis
+- `app/Data` ou `app/DTO` para objetos de transporte quando o projeto ja usar DTOs
+
+Antes de mexer em controller grande:
+- mapear responsabilidades existentes
+- extrair primeiro validacao, autorizacao, queries, formatacao e integracoes externas
+- preservar contratos HTTP e payloads existentes
+- cobrir o fluxo com testes feature antes ou junto da refatoracao
+- registrar a decisao na documentacao local do projeto
 
 # REGRAS BACKEND (TOKEN-SAVER)
 
@@ -111,9 +154,11 @@ Skill de apoio para mudanças em projetos Laravel.
 
 # TRATAMENTO DE ERROS (OBRIGATORIO)
 
-- Em backend Laravel, toda rota, controller, service, action, job, listener e classe de regra de negocio deve ter tratamento explicito de erro com `try/catch`
+- Em backend Laravel, toda rota, controller, service, action, job, listener e classe de regra de negocio deve ter
+  tratamento explicito de erro com `try/catch`
 - Sempre preferir `catch (Throwable $e)` para capturar erros e excecoes de forma abrangente
-- Ao capturar erro: registrar com contexto relevante (ex.: id do recurso, usuario, payload filtrado) e retornar resposta consistente
+- Ao capturar erro: registrar com contexto relevante (ex.: id do recurso, usuario, payload filtrado) e retornar
+  resposta consistente
 - Nao engolir erro silenciosamente; sempre logar e padronizar retorno HTTP/DTO de erro
 - Se necessario, relancar com contexto adicional apos log
 
