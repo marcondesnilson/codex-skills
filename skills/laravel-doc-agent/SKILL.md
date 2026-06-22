@@ -26,6 +26,7 @@ Skill de apoio para mudanças em projetos Laravel.
 - Serializacao de resposta deve usar API Resources, DTOs ou presenters quando houver contrato de API
 - Queries complexas devem ficar em escopos, query builders dedicados, repositorios ou classes de consulta
 - Evitar logica de infraestrutura misturada com regra de negocio
+- Usar o ecossistema Laravel completo sempre que possivel, em vez de concentrar tudo em controllers ou services
 
 # ARQUITETURA DE APLICACAO (OBRIGATORIO)
 
@@ -52,6 +53,25 @@ Ao criar ou alterar funcionalidades Laravel:
 - mover efeitos assíncronos para Jobs, Events e Listeners quando fizer sentido
 - mover regras reutilizaveis de modelo para casts, accessors/mutators, observers ou domain services
 - documentar no projeto a organizacao adotada para services/actions/use cases
+
+# USO DO ECOSSISTEMA LARAVEL (OBRIGATORIO)
+
+Ao implementar ou refatorar funcionalidades Laravel, escolher primeiro os recursos nativos do framework que melhor
+representam cada responsabilidade:
+- Form Requests para validacao e preparacao de entrada HTTP
+- Policies, Gates e middleware para autorizacao e protecao de rotas
+- API Resources, DTOs ou presenters para contratos de resposta
+- Jobs e queues para trabalho assíncrono, pesado, retryable ou dependente de integracoes externas
+- Events e Listeners para efeitos colaterais desacoplados do fluxo principal
+- Observers para reacoes a eventos de modelo, quando a regra for diretamente ligada ao ciclo de vida da entidade
+- Notifications, Mailables e Broadcasts para comunicacao, alertas e atualizacoes em tempo real
+- Commands, Schedule e queue workers para rotinas operacionais e processamento recorrente
+- Casts, accessors, mutators, scopes, query builders e Collections para comportamento proprio de modelo ou consulta
+- Service Providers, config files e bindings do container para configuracao, integracao e inversao de dependencia
+
+Nao criar implementacoes manuais paralelas quando Laravel ja oferecer uma primitiva adequada. Services, actions e use
+cases devem orquestrar regras de aplicacao, mas devem delegar validacao, autorizacao, serializacao, eventos,
+observacao de modelos, notificacoes, jobs e tarefas agendadas para os recursos nativos correspondentes.
 
 Estruturas recomendadas, adaptando ao padrao existente:
 - `app/Services/<Dominio>/<Nome>Service.php` para servicos de dominio ou aplicacao

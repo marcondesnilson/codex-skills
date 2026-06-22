@@ -19,6 +19,9 @@ No `AGENTS.md` do repositório, mantenha apenas bootstrap curto chamando as skil
 O `laravel-doc-agent` documenta padrões obrigatórios para evitar controllers gigantes:
 controllers devem apenas orquestrar HTTP, enquanto regra de negócio, validação, autorização, queries,
 serialização e integrações devem ficar em services/actions/use cases e recursos próprios do Laravel.
+Também deixa explícito que mudanças Laravel devem usar o ecossistema do framework sempre que possível:
+Form Requests, Policies, API Resources, Jobs, queues, Events, Listeners, Observers, Notifications,
+Commands, Schedule, Service Providers, casts, scopes e demais primitivas nativas adequadas ao fluxo.
 
 ## Instalação (URL raw)
 
