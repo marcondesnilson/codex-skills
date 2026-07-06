@@ -22,6 +22,8 @@ serialização e integrações devem ficar em services/actions/use cases e recur
 Também deixa explícito que mudanças Laravel devem usar o ecossistema do framework sempre que possível:
 Form Requests, Policies, API Resources, Jobs, queues, Events, Listeners, Observers, Notifications,
 Commands, Schedule, Service Providers, casts, scopes e demais primitivas nativas adequadas ao fluxo.
+Para APIs, também orienta a evitar rotas redundantes: variações de listagem, busca, status, período,
+ordenação ou tipo devem virar filtros validados no endpoint canônico antes de se criar uma nova rota.
 
 ## Instalação (URL raw)
 

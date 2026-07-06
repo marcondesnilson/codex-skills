@@ -28,6 +28,23 @@ Skill de apoio para mudanças em projetos Laravel.
 - Evitar logica de infraestrutura misturada com regra de negocio
 - Usar o ecossistema Laravel completo sempre que possivel, em vez de concentrar tudo em controllers ou services
 
+# ROTAS E FILTROS (OBRIGATORIO)
+
+- Antes de criar rota nova, revisar `routes/*.php` e confirmar se ja existe endpoint com o mesmo recurso,
+  listagem, consulta ou intencao funcional
+- Nao criar varias rotas para o mesmo objetivo apenas mudando criterio de busca, status, periodo, ordenacao,
+  agrupamento, tipo ou visao da mesma colecao
+- Para listagens e consultas, priorizar filtros por query string no endpoint canônico, como
+  `GET /orders?status=pending&from=2026-01-01&to=2026-01-31`
+- Validar filtros em Form Request dedicado e aplicar a consulta em scopes, query builders, repositories ou classes
+  `app/Queries`, mantendo o controller apenas como orquestrador HTTP
+- Criar rota separada somente quando houver recurso diferente, acao de dominio diferente, mudanca real de metodo HTTP,
+  contrato de payload incompatível ou necessidade clara de autorizacao/middleware distintos
+- Quando houver duvida entre nova rota e filtro, escolher filtro primeiro e documentar os parametros aceitos no contrato
+  da API
+- Evitar endpoints redundantes como `/users/active`, `/users/inactive`, `/users/by-role/{role}` quando
+  `GET /users?status=active&role=admin` resolver o mesmo contrato com clareza
+
 # ARQUITETURA DE APLICACAO (OBRIGATORIO)
 
 Controllers nao devem concentrar regra de negocio. Eles devem apenas:
