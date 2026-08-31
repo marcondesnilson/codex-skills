@@ -1,19 +1,29 @@
 ---
 name: global-doc-agent
-description: Aplicar padrão de documentação obrigatória com múltiplos projetos (monorepo), garantindo leitura de docs antes de alterações e consistência entre código e documentação.
+description: Aplicar documentação obrigatória, escopo incremental e qualidade SonarQube em projetos e monorepos. Use sempre que esta skill for citada no AGENTS.md do projeto ou quando a tarefa exigir consistência entre código, documentação e análise estática.
 ---
 
 # 🧠 CONTEXTO
 
 Esta skill aplica um padrão orientado por documentação obrigatória, com suporte a múltiplos projetos independentes dentro do mesmo repositório.
 
+# ⚠️ OBRIGATORIEDADE E ESCOPO
+
+- Se esta skill estiver citada no `AGENTS.md` aplicável ao arquivo ou projeto, suas instruções são obrigatórias em toda tarefa dentro desse escopo.
+- Não substituir, flexibilizar ou ignorar estas regras por preferência própria. Em caso de conflito, seguir instruções de maior prioridade e informar o conflito.
+- Em projeto existente, aplicar estas regras somente ao código, configuração, testes e documentação que a tarefa criar ou alterar, incluindo dependências e contratos diretamente necessários à mudança.
+- Não auditar, varrer, refatorar ou corrigir outras áreas apenas para adequar código legado a esta skill.
+- Não incluir correções oportunistas fora do pedido. Dívida antiga encontrada incidentalmente deve permanecer intacta, salvo quando impedir a mudança solicitada.
+- Melhorias estruturais em projetos existentes são incrementais: ao tocar um fluxo legado, adequar a parte modificada sem exigir a modernização completa do arquivo, módulo ou projeto.
+- Em projeto novo, aplicar as regras desde a base no escopo solicitado.
+
 # 🧭 ORDEM OBRIGATÓRIA
 
 Sempre seguir:
 
-1. Verificar /documentation/index.md
+1. Verificar `/documentation/index.md`, se existir
 2. Identificar o projeto afetado
-3. Verificar /<projeto>/documentation/index.md (se existir)
+3. Verificar `/<projeto>/documentation/index.md`, se existir
 4. Ler documentação relevante
 5. Validar com estrutura real
 
@@ -21,15 +31,18 @@ Nunca modificar código antes disso.
 
 # 📚 PRIORIDADE
 
-1. Documentação do projeto
+1. Instruções aplicáveis e documentação do projeto
 2. Documentação global
-3. Estrutura real
+3. Estrutura real para confirmar a implementação
+
+Não confiar apenas na documentação quando código, configuração ou comportamento executável puderem confirmar o contrato. Se houver divergência, limitar a investigação ao fluxo afetado e atualizar a documentação correspondente.
 
 # 🧩 MÚLTIPLOS PROJETOS
 
-- Detectar automaticamente projetos
+- Identificar somente o projeto ou os projetos afetados pela tarefa
 - Tratar de forma independente
 - Não assumir stack
+- Não inspecionar outros projetos do monorepo sem relação direta com a mudança
 
 # 🔄 DOCUMENTAÇÃO
 
@@ -44,6 +57,25 @@ Se alterar comportamento:
 - validar apenas projeto afetado
 - usar testes/build/lint se existirem
 
+# 🔎 SONARQUBE E CLEAN AS YOU CODE
+
+Estas regras são obrigatórias para todo código criado ou alterado:
+
+- Identificar no projeto afetado a configuração existente do SonarQube, como `sonar-project.properties`, workflow de CI, Quality Profile, Quality Gate, exclusões e definição de New Code.
+- Seguir as regras ativas do Quality Profile e os limites do Quality Gate do próprio projeto; não inventar limites universais quando o projeto possuir configuração específica.
+- Tratar como New Code todo código adicionado ou modificado pela tarefa e não introduzir novos bugs, vulnerabilidades, code smells ou duplicações detectáveis.
+- Manter o foco no New Code. Em projeto existente, não executar varredura corretiva nem alterar código legado fora do fluxo tocado apenas porque o Overall Code possui dívida.
+- Antes de duplicar lógica, verificar no módulo afetado e em suas dependências diretas se já existe abstração reutilizável. Extrair apenas comportamentos realmente equivalentes, sem criar acoplamento artificial.
+- Reduzir complexidade cognitiva, aninhamento, funções extensas, condições repetidas, código morto e responsabilidades misturadas no trecho alterado.
+- Tratar dados externos como não confiáveis: validar entrada, preservar autorização, evitar injeção, exposição de segredos, logs sensíveis e uso inseguro de APIs.
+- Criar ou atualizar testes do comportamento alterado para atender a cobertura exigida no New Code pelo Quality Gate vigente.
+- Revisar cada Security Hotspot do código alterado no contexto real. Não marcar como seguro nem corrigir mecanicamente sem entender entrada, confiança, exposição e mitigação.
+- Não usar `NOSONAR`, exclusões, desativação de regras, redução do Quality Gate ou comentários de supressão para fazer a análise passar. Exceção somente para falso positivo comprovado, com justificativa documentada e conforme o processo do projeto.
+- Quando houver scanner local já configurado e sua execução não publicar dados nem exigir credenciais externas, executar a análise do projeto afetado. Caso contrário, executar as validações locais equivalentes e informar que o Quality Gate depende da CI/SonarQube.
+- Nunca exibir tokens, URLs privadas com credenciais ou outros segredos ao diagnosticar a análise.
+
+Se a CI ou o SonarQube reportar problema no código da tarefa, corrigir a causa e repetir a validação relevante antes de concluir. Achados preexistentes fora do New Code devem ser registrados como limite, não corrigidos sem pedido explícito.
+
 # 🔐 SEGURANÇA
 
 - nunca expor segredos
@@ -51,8 +83,9 @@ Se alterar comportamento:
 
 # 🧾 SESSÃO, VISITAS E AÇÕES
 
-Todo projeto com interface, API pública, autenticação ou fluxo de usuário deve prever registro de sessões,
-visitas e ações de forma proporcional ao produto e à legislação aplicável.
+Todo projeto novo com interface, API pública, autenticação ou fluxo de usuário deve prever registro de sessões,
+visitas e ações de forma proporcional ao produto e à legislação aplicável. Em projeto existente, estas regras se
+aplicam apenas quando a tarefa tocar no fluxo de sessão, visitas, ações, analytics ou em seu contrato direto.
 
 Objetivos:
 - permitir auditoria de ações de usuários autenticados
@@ -90,7 +123,9 @@ Diretrizes por tipo de projeto:
 
 # 🩺 HEALTHCHECK E STATUS
 
-Todo projeto criado ou alterado deve ter documentação e implementação mínima de health/status.
+Todo projeto novo deve ter documentação e implementação mínima de health/status. Em projeto existente, aplicar
+estas regras somente quando a tarefa criar ou alterar health/status, monitoramento, deploy ou infraestrutura que
+dependa desses sinais. Uma mudança sem relação com esse fluxo não autoriza procurar ou implantar healthchecks.
 
 Regras gerais:
 - expor um endpoint, rota ou arquivo público de liveness para monitoramento automatizado

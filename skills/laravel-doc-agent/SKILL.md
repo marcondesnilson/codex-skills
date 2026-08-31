@@ -1,15 +1,25 @@
 ---
 name: laravel-doc-agent
-description: Aplicar padrões recorrentes para projetos Laravel com foco em documentação, organização por domínio, validação, segurança e consistência entre código e docs.
+description: Aplicar padrões obrigatórios e incrementais de Laravel, documentação e SonarQube. Use sempre que esta skill for citada no AGENTS.md aplicável ou quando a tarefa envolver código, configuração, testes ou arquitetura Laravel.
 ---
 
 # CONTEXTO
 
 Skill de apoio para mudanças em projetos Laravel.
 
+# OBRIGATORIEDADE E ESCOPO
+
+- Se esta skill estiver citada no `AGENTS.md` aplicável, seguir suas instruções em toda tarefa Laravel dentro desse escopo.
+- Não substituir, flexibilizar ou ignorar estas regras por preferência própria. Em caso de conflito, seguir instruções de maior prioridade e informar o conflito.
+- Em Laravel existente, aplicar os padrões somente ao fluxo, código, configuração, testes, documentação e contratos diretamente tocados pela tarefa.
+- Inspecionar apenas rotas, classes, dependências e documentação necessárias para entender e validar a mudança. Não procurar problemas nem auditar módulos não relacionados.
+- Corrigir legado gradualmente: adequar a parte alterada e preservar o restante, salvo dependência direta indispensável para a mudança funcionar.
+- Não ampliar o pedido para refatorar controllers, models, rotas, autenticação, auditoria, tratamento de erros ou healthchecks fora do fluxo afetado.
+- Em projeto Laravel novo, aplicar os padrões desde a base no escopo solicitado.
+
 # ORDEM
 
-1. Ler documentação local do projeto Laravel
+1. Ler documentação local relevante do projeto Laravel, se existir
 2. Confirmar versão e stack (Laravel, PHP, banco, filas)
 3. Implementar mudança mantendo padrão existente
 4. Validar com testes/lint/comandos do projeto
@@ -112,8 +122,10 @@ Antes de mexer em controller grande:
 
 # HEALTHCHECK E STATUS (OBRIGATORIO)
 
-- Todo backend Laravel deve expor endpoints publicos de monitoramento: `GET /health/live`, `GET /health/ready`
+- Todo backend Laravel novo deve expor endpoints publicos de monitoramento: `GET /health/live`, `GET /health/ready`
   e `GET /status`
+- Em backend existente, aplicar esta seção somente quando a tarefa criar ou alterar health/status, monitoramento,
+  deploy ou infraestrutura dependente desses endpoints
 - Manter `GET /health` como alias simples de liveness quando houver necessidade de compatibilidade
 - `GET /health/live` deve ser minimo, rapido e nao consultar banco, Redis, filas ou servicos externos
 - `GET /health/live` deve retornar `200` com payload `{"status":"ok"}` quando a aplicacao estiver viva
@@ -170,7 +182,9 @@ Antes de mexer em controller grande:
 
 # AUDITORIA (OBRIGATORIO)
 
-- Todo projeto Laravel criado ou alterado deve ter auditoria base com `owen-it/laravel-auditing`
+- Todo projeto Laravel novo deve ter auditoria base com `owen-it/laravel-auditing`
+- Em projeto existente, aplicar esta seção somente quando a tarefa criar ou alterar auditoria ou modelos/fluxos cujo
+  contrato de auditoria seja diretamente afetado; não instalar o pacote nem revisar outros modelos por uma mudança não relacionada
 - Adicionar/configurar `config/audit.php` com auditoria controlada por `AUDITING_ENABLED` e default `true`
 - Usar resolver de usuario considerando guards em ordem `api`, `web`
 - Auditar eventos `created`, `updated`, `deleted` e `restored`
@@ -191,8 +205,8 @@ Antes de mexer em controller grande:
 
 # TRATAMENTO DE ERROS (OBRIGATORIO)
 
-- Em backend Laravel, toda rota, controller, service, action, job, listener e classe de regra de negocio deve ter
-  tratamento explicito de erro com `try/catch`
+- No código Laravel novo ou diretamente alterado, tratar erros de forma explícita nas bordas em que seja necessário
+  registrar contexto, recuperar a operação, converter o erro ou padronizar a resposta
 - Sempre preferir `catch (Throwable $e)` para capturar erros e excecoes de forma abrangente
 - Ao capturar erro: registrar com contexto relevante (ex.: id do recurso, usuario, payload filtrado) e retornar
   resposta consistente
@@ -227,9 +241,27 @@ try {
 - Priorizar testes feature para fluxos HTTP e unitarios para regra de negocio
 - Evitar alterar suites nao relacionadas sem necessidade
 
+# SONARQUBE E CLEAN AS YOU CODE
+
+Todo código Laravel criado ou alterado deve respeitar o Quality Profile e o Quality Gate SonarQube ativos no projeto:
+
+- Ler somente a configuração SonarQube do backend afetado e seus comandos de análise, quando existirem.
+- Não introduzir novos bugs, vulnerabilidades, code smells, Security Hotspots sem revisão ou duplicação no New Code.
+- Antes de criar regra, query, validação, transformação, integração ou tratamento repetido, verificar implementações equivalentes no domínio afetado e nas dependências diretas já usadas pelo fluxo.
+- Reutilizar Form Requests, Policies, Resources, scopes, Actions, Services e demais primitivas existentes quando o contrato for realmente o mesmo. Não criar abstração artificial apenas para reduzir uma ocorrência métrica.
+- Evitar duplicação entre controllers, services, jobs e listeners do fluxo alterado; manter cada responsabilidade na camada Laravel adequada.
+- Reduzir complexidade cognitiva, aninhamento, métodos extensos, condicionais repetidas, código morto e múltiplas responsabilidades no trecho alterado.
+- Prevenir injeção SQL e de comandos, mass assignment indevido, XSS, SSRF, path traversal, upload inseguro, autorização ausente, criptografia fraca, exposição de secrets e dados sensíveis em logs ou respostas.
+- Preferir Query Builder/Eloquent com bindings, validação por Form Request, autorização por Policy/Gate e escaping padrão das views. SQL bruto, comandos, desserialização e HTML não escapado exigem necessidade comprovada e proteção explícita.
+- Atualizar testes do comportamento alterado e a cobertura do New Code conforme o Quality Gate; cobrir autorização, validação e caminhos de erro relevantes, não apenas o caminho feliz.
+- Não silenciar achados com `NOSONAR`, comentários de supressão, exclusões ou desativação de regras. Falso positivo exige evidência e justificativa conforme o processo do projeto.
+- Executar testes, lint/análise estática e análise Sonar local já configurada e segura para o projeto afetado. Se o scan depender da CI ou de credenciais, não improvisar nem expor segredos; informar a validação pendente.
+
+Em Laravel existente, corrigir os achados relacionados ao New Code e às linhas tocadas. Não procurar nem corrigir outros módulos para limpar o Overall Code.
+
 # DOCUMENTACAO
 
-Se houver alteracao funcional:
+Se houver alteracao funcional no escopo tocado:
 - atualizar docs do projeto
 - atualizar index da documentacao local
 - manter exemplos de uso e contratos atualizados
