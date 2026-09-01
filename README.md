@@ -50,6 +50,9 @@ Form Requests, Policies, API Resources, Jobs, queues, Events, Listeners, Observe
 Commands, Schedule, Service Providers, casts, scopes e demais primitivas nativas adequadas ao fluxo.
 Para APIs, também orienta a evitar rotas redundantes: variações de listagem, busca, status, período,
 ordenação ou tipo devem virar filtros validados no endpoint canônico antes de se criar uma nova rota.
+Para SSE, centraliza rotas explícitas sob `/streams`, usa Observer após commit e Redis Streams para publicação,
+replay e reconexão sem polling no banco. O contrato completo fica na
+[referência SSE da skill Laravel](skills/laravel-doc-agent/references/sse.md).
 
 O `commit-projects` é uma skill operacional de invocação explícita. Use `$commit-projects` quando quiser revisar o
 diff completo, reconciliar a documentação, aplicar SemVer e criar um commit local. Apenas instalar ou citar essa

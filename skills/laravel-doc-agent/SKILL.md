@@ -1,6 +1,6 @@
 ---
 name: laravel-doc-agent
-description: Aplicar padrões obrigatórios e incrementais de Laravel, documentação e SonarQube. Use sempre que esta skill for citada no AGENTS.md aplicável ou quando a tarefa envolver código, configuração, testes ou arquitetura Laravel.
+description: Aplicar padrões obrigatórios e incrementais de Laravel, documentação, SonarQube e SSE com Redis Streams. Use sempre que esta skill for citada no AGENTS.md aplicável ou quando a tarefa envolver código, configuração, testes ou arquitetura Laravel.
 ---
 
 # CONTEXTO
@@ -240,6 +240,28 @@ try {
 - Executar testes focados no modulo alterado
 - Priorizar testes feature para fluxos HTTP e unitarios para regra de negocio
 - Evitar alterar suites nao relacionadas sem necessidade
+
+# SERVER-SENT EVENTS (SSE)
+
+Ao criar ou alterar SSE, ler e seguir integralmente [references/sse.md](references/sse.md).
+
+Regras essenciais:
+
+- Centralizar endpoints SSE sob o prefixo plural `/streams`, dentro do prefixo base já adotado pelo projeto.
+- Criar rotas `GET` explícitas por fluxo, como `/streams/notifications`; não usar um catch-all público
+  `/streams/{channel}` nem espalhar SSE em rotas fora desse namespace.
+- Para eventos originados por alterações Eloquent, usar Observer executado após o commit e um publisher dedicado
+  que grave no Redis. O Observer não deve abrir o stream HTTP nem executar consultas adicionais.
+- Usar Redis Streams com `XADD` e `XREAD` como padrão para permitir cursor, retenção limitada e reconexão por
+  `Last-Event-ID`. Não usar polling no banco e não usar Pub/Sub puro quando houver necessidade de replay.
+- O loop SSE deve ler apenas do Redis depois da autenticação e autorização iniciais. Nunca consultar banco a cada
+  ciclo, heartbeat ou evento.
+- Padronizar `id`, `event`, `data` JSON, `retry`, heartbeat, encerramento controlado, autenticação, isolamento de
+  tenant, limites de conexão e comportamento quando o cursor tiver expirado.
+- Manter payloads pequenos e seguros. Preferir eventos de alteração/invalidação e obter estado completo pelo
+  endpoint REST canônico quando necessário.
+- Documentar e testar publicação, formato, reconexão, replay, autorização, isolamento, falha do Redis, proxy e
+  ausência de consultas ao banco dentro do loop.
 
 # SONARQUBE E CLEAN AS YOU CODE
 
