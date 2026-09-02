@@ -207,11 +207,11 @@ Antes de mexer em controller grande:
 
 - No código Laravel novo ou diretamente alterado, tratar erros de forma explícita nas bordas em que seja necessário
   registrar contexto, recuperar a operação, converter o erro ou padronizar a resposta
-- Sempre preferir `catch (Throwable $e)` para capturar erros e excecoes de forma abrangente
-- Ao capturar erro: registrar com contexto relevante (ex.: id do recurso, usuario, payload filtrado) e retornar
-  resposta consistente
-- Nao engolir erro silenciosamente; sempre logar e padronizar retorno HTTP/DTO de erro
-- Se necessario, relancar com contexto adicional apos log
+- Capturar somente quando houver tratamento útil; usar a exception mais específica possível e, em uma borda que precise
+  abranger erros e exceções, preferir `catch (Throwable $e)`
+- Ao capturar erro, conforme o contexto: recuperar, converter em erro de domínio ou resposta consistente, registrar com
+  dados seguros ou relançar preservando a causa
+- Nao engolir erro silenciosamente nem registrar secrets, tokens ou payloads sensíveis
 
 Exemplo base:
 
@@ -263,23 +263,38 @@ Regras essenciais:
 - Documentar e testar publicação, formato, reconexão, replay, autorização, isolamento, falha do Redis, proxy e
   ausência de consultas ao banco dentro do loop.
 
-# SONARQUBE E CLEAN AS YOU CODE
+# QUALIDADE LARAVEL/PHP E SONARQUBE
 
-Todo código Laravel criado ou alterado deve respeitar o Quality Profile e o Quality Gate SonarQube ativos no projeto:
+Aplicar integralmente a política de qualidade e o checklist do `global-doc-agent`. Esta seção apenas especializa o New Code
+Laravel/PHP e não substitui as decisões arquiteturais já adotadas pelo projeto:
 
-- Ler somente a configuração SonarQube do backend afetado e seus comandos de análise, quando existirem.
-- Não introduzir novos bugs, vulnerabilidades, code smells, Security Hotspots sem revisão ou duplicação no New Code.
-- Antes de criar regra, query, validação, transformação, integração ou tratamento repetido, verificar implementações equivalentes no domínio afetado e nas dependências diretas já usadas pelo fluxo.
-- Reutilizar Form Requests, Policies, Resources, scopes, Actions, Services e demais primitivas existentes quando o contrato for realmente o mesmo. Não criar abstração artificial apenas para reduzir uma ocorrência métrica.
-- Evitar duplicação entre controllers, services, jobs e listeners do fluxo alterado; manter cada responsabilidade na camada Laravel adequada.
-- Reduzir complexidade cognitiva, aninhamento, métodos extensos, condicionais repetidas, código morto e múltiplas responsabilidades no trecho alterado.
-- Prevenir injeção SQL e de comandos, mass assignment indevido, XSS, SSRF, path traversal, upload inseguro, autorização ausente, criptografia fraca, exposição de secrets e dados sensíveis em logs ou respostas.
-- Preferir Query Builder/Eloquent com bindings, validação por Form Request, autorização por Policy/Gate e escaping padrão das views. SQL bruto, comandos, desserialização e HTML não escapado exigem necessidade comprovada e proteção explícita.
-- Atualizar testes do comportamento alterado e a cobertura do New Code conforme o Quality Gate; cobrir autorização, validação e caminhos de erro relevantes, não apenas o caminho feliz.
-- Não silenciar achados com `NOSONAR`, comentários de supressão, exclusões ou desativação de regras. Falso positivo exige evidência e justificativa conforme o processo do projeto.
-- Executar testes, lint/análise estática e análise Sonar local já configurada e segura para o projeto afetado. Se o scan depender da CI ou de credenciais, não improvisar nem expor segredos; informar a validação pendente.
+- Usar Form Requests para entrada HTTP com validação relevante e Policies, Gates ou middleware para autorização. Não
+  considerar validação ou proteção da interface como autorização.
+- Usar API Resources, DTOs ou presenters conforme o padrão existente para manter serialização e contratos consistentes.
+- Manter controllers focados em HTTP e Blade focado em apresentação; regras de negócio relevantes pertencem a Services,
+  Actions ou Use Cases já adotados pelo projeto.
+- Usar Jobs/Queues para processamento assíncrono e Events/Listeners quando o desacoplamento representar corretamente o
+  fluxo, sem mover trabalho artificialmente apenas para satisfazer uma regra estrutural.
+- Usar transactions nas operações que precisam ser atômicas e considerar concorrência, idempotência, retries e efeitos
+  externos. Não manter transação aberta além do necessário.
+- Definir casts e scopes adequados ao domínio e revisar tipos, atributos ausentes e retornos nullable.
+- Evitar N+1; usar eager loading quando os relacionamentos forem realmente consumidos e validar o custo das consultas do
+  fluxo alterado.
+- Preferir Eloquent ou Query Builder com bindings. SQL bruto e comandos exigem necessidade comprovada, parâmetros seguros
+  e revisão explícita contra injeção.
+- Proteger Mass Assignment conforme o padrão do projeto com `$fillable`, `$guarded`, DTOs ou atribuição explícita; nunca
+  persistir indiscriminadamente toda a entrada da request.
+- Não usar `env()` fora de arquivos de configuração e nunca inserir secrets em código, logs, respostas ou fixtures
+  versionadas.
+- Tratar exceptions conforme a seção específica desta skill, preservando causa e contrato de resposta.
+- Remover imports PHP não utilizados e código morto resultante da alteração.
+- Cobrir regras de negócio, validação, autorização, APIs, Jobs e correções de bugs com testes focados, incluindo regressão
+  quando aplicável.
+- Executar os comandos Laravel/PHP de testes, lint, análise estática e Sonar já configurados para o fluxo afetado. Não
+  inventar configuração nem afirmar que o Quality Gate passou quando o scan não foi executado.
 
-Em Laravel existente, corrigir os achados relacionados ao New Code e às linhas tocadas. Não procurar nem corrigir outros módulos para limpar o Overall Code.
+Em Laravel existente, limitar a inspeção e as correções ao New Code, às linhas tocadas e aos contratos diretos. Não limpar
+outros módulos apenas por haver dívida no Overall Code.
 
 # DOCUMENTACAO
 

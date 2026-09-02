@@ -57,24 +57,135 @@ Se alterar comportamento:
 - validar apenas projeto afetado
 - usar testes/build/lint se existirem
 
-# 🔎 SONARQUBE E CLEAN AS YOU CODE
+# Qualidade de Código e SonarQube
 
-Estas regras são obrigatórias para todo código criado ou alterado:
+## Política obrigatória
 
-- Identificar no projeto afetado a configuração existente do SonarQube, como `sonar-project.properties`, workflow de CI, Quality Profile, Quality Gate, exclusões e definição de New Code.
-- Seguir as regras ativas do Quality Profile e os limites do Quality Gate do próprio projeto; não inventar limites universais quando o projeto possuir configuração específica.
-- Tratar como New Code todo código adicionado ou modificado pela tarefa e não introduzir novos bugs, vulnerabilidades, code smells ou duplicações detectáveis.
-- Manter o foco no New Code. Em projeto existente, não executar varredura corretiva nem alterar código legado fora do fluxo tocado apenas porque o Overall Code possui dívida.
-- Antes de duplicar lógica, verificar no módulo afetado e em suas dependências diretas se já existe abstração reutilizável. Extrair apenas comportamentos realmente equivalentes, sem criar acoplamento artificial.
-- Reduzir complexidade cognitiva, aninhamento, funções extensas, condições repetidas, código morto e responsabilidades misturadas no trecho alterado.
-- Tratar dados externos como não confiáveis: validar entrada, preservar autorização, evitar injeção, exposição de segredos, logs sensíveis e uso inseguro de APIs.
-- Criar ou atualizar testes do comportamento alterado para atender a cobertura exigida no New Code pelo Quality Gate vigente.
-- Revisar cada Security Hotspot do código alterado no contexto real. Não marcar como seguro nem corrigir mecanicamente sem entender entrada, confiança, exposição e mitigação.
-- Não usar `NOSONAR`, exclusões, desativação de regras, redução do Quality Gate ou comentários de supressão para fazer a análise passar. Exceção somente para falso positivo comprovado, com justificativa documentada e conforme o processo do projeto.
-- Quando houver scanner local já configurado e sua execução não publicar dados nem exigir credenciais externas, executar a análise do projeto afetado. Caso contrário, executar as validações locais equivalentes e informar que o Quality Gate depende da CI/SonarQube.
-- Nunca exibir tokens, URLs privadas com credenciais ou outros segredos ao diagnosticar a análise.
+Todo código criado, modificado, corrigido ou refatorado, em qualquer tecnologia, deve seguir Clean as You Code. Tratar
+como New Code o código adicionado ou modificado pela tarefa, o fluxo diretamente afetado e as dependências diretas
+necessárias. O código tocado deve ficar tão sustentável quanto estava ou melhor e não pode introduzir nem agravar
+deliberadamente problemas normalmente detectados pelo SonarQube.
 
-Se a CI ou o SonarQube reportar problema no código da tarefa, corrigir a causa e repetir a validação relevante antes de concluir. Achados preexistentes fora do New Code devem ser registrados como limite, não corrigidos sem pedido explícito.
+Em projeto existente, não realizar auditoria, limpeza ou refatoração geral para corrigir o Overall Code. Problemas legados
+não relacionados permanecem fora do escopo. Quando um problema existente estiver no trecho que precisa ser alterado,
+avaliar a correção conjunta se ela for necessária para manter o New Code limpo e não ampliar indevidamente a tarefa.
+
+Antes de concluir uma alteração de código, revisar as categorias abaixo.
+
+## 1. Bugs e confiabilidade
+
+- Analisar os principais caminhos possíveis de execução, incluindo sucesso, ausência de dados, falhas e limites relevantes.
+- Não introduzir acessos inseguros a valores `null`/`undefined`, índices ou propriedades inexistentes, tipos inconsistentes,
+  condições incorretas, retornos incompatíveis, código inalcançável ou erros previsíveis de runtime.
+- Não ignorar exceções, falhas de recursos, concorrência aplicável, efeitos colaterais inesperados ou liberação necessária
+  de arquivos, conexões, locks, listeners, timers e outros recursos.
+- Preservar contratos e estados consistentes nos diferentes caminhos do fluxo alterado.
+
+## 2. Vulnerabilidades e segurança
+
+- Considerar toda entrada externa não confiável até que seja validada, normalizada e autorizada conforme o contexto.
+- Verificar, quando aplicável, SQL Injection, XSS, Command Injection, Path Traversal, SSRF, CSRF, Mass Assignment,
+  Broken Access Control, autenticação, autorização, uploads, manipulação de arquivos e URLs externas.
+- Proteger secrets, tokens, senhas, credenciais e dados sensíveis em código, configuração, resposta, armazenamento e logs.
+- Não usar criptografia insegura nem inventar mecanismos criptográficos próprios.
+- Nunca considerar validação, ocultação de controles ou outra proteção da interface suficiente para autorização; a decisão
+  deve ser aplicada na fronteira confiável do sistema.
+
+## 3. Code Smells e manutenibilidade
+
+- Evitar métodos e classes grandes, responsabilidades excessivas, parâmetros demais, condicionais complexas,
+  aninhamento excessivo, dependências desnecessárias e abstrações sem benefício real.
+- Remover, quando forem consequência direta da alteração, imports e variáveis não utilizados, métodos ou funções que se
+  tornaram obsoletos, branches impossíveis, código comentado e demais códigos mortos.
+- Não fazer limpeza indiscriminada em arquivos ou módulos não relacionados.
+- Priorizar legibilidade, nomes claros, baixo acoplamento, alta coesão, responsabilidade bem definida e a solução mais
+  simples que preserve corretamente o contrato.
+- Comentários devem explicar contexto ou decisão não evidente, não repetir literalmente o código.
+
+## 4. Complexidade cognitiva e ciclomática
+
+- Controlar principalmente a Complexidade Cognitiva de funções que acumulem `if`, `else`, `switch`, `match`, loops,
+  `try/catch`, callbacks ou muitos níveis de aninhamento.
+- Avaliar guard clauses, early returns, extração de métodos e separação em services, actions, strategies ou utilities
+  quando isso reduzir responsabilidades e melhorar de fato a compreensão.
+- Não criar abstrações artificiais nem fragmentar um fluxo claro apenas para reduzir uma métrica.
+
+## 5. Duplicação
+
+- Antes de copiar lógica existente, verificar o módulo afetado e suas dependências diretas e decidir se o comportamento
+  realmente deve ser reutilizado.
+- Usar a abstração apropriada à tecnologia, como funções, métodos, services, actions, components, hooks, helpers,
+  utilities, traits ou objetos de domínio, somente quando houver equivalência real de responsabilidade e contrato.
+- Não criar abstrações prematuras para pequenas coincidências.
+- Buscar duplicação inferior a 3% no New Code como referência comum somente quando não houver limite específico no
+  Quality Gate do projeto.
+
+## 6. Security Hotspots
+
+Código relacionado a autenticação, autorização, criptografia, tokens, uploads, arquivos, comandos, URLs ou comunicação
+HTTP externa, banco de dados, permissões ou dados sensíveis exige revisão de segurança explícita antes da conclusão.
+Analisar a origem da entrada, os limites de confiança, a exposição e a mitigação; não classificar um hotspot como seguro
+nem aplicar correção mecânica sem entender o contexto real.
+
+## 7. Testes e cobertura
+
+- Código com comportamento relevante deve possuir testes quando o projeto tiver infraestrutura adequada.
+- Priorizar regras de negócio, validações, cálculos, autorização, permissões, services, APIs, casos de uso, caminhos de
+  erro, correções de bugs e comportamentos críticos.
+- Ao corrigir um bug, avaliar sempre um teste de regressão que falhe sem a correção e valide resultado observável.
+- Buscar cobertura de pelo menos 80% no New Code como referência comum somente quando não houver exigência específica no
+  Quality Gate do projeto.
+- Não criar testes artificiais que apenas executem linhas ou burlem medição sem comprovar comportamento.
+
+## 8. Dívida técnica
+
+Não introduzir deliberadamente `TODO` sem contexto e critério de resolução, `FIXME` sem justificativa, código comentado,
+workaround tratado como solução permanente, duplicação por rapidez, bypass de validação ou autorização, nem exceção
+silenciosa. Se uma limitação inevitável permanecer no escopo, documentar causa, impacto e condição objetiva de resolução
+conforme o padrão do projeto.
+
+## Tratamento de erros
+
+- Nunca esconder erro com `catch` vazio ou equivalente.
+- Conforme a responsabilidade da camada, tratar, propagar, registrar com contexto seguro, converter em erro de domínio ou
+  transformar em resposta apropriada.
+- Capturar apenas quando houver ação útil; preservar a causa ao relançar ou converter o erro.
+- Logs não podem expor secrets nem dados sensíveis desnecessários.
+
+## Quality Profile, Quality Gate e validação
+
+- Identificar no projeto afetado a configuração existente do SonarQube, como `sonar-project.properties`, workflow de CI,
+  Quality Profile, Quality Gate, exclusões, definição de New Code e comandos já adotados.
+- O Quality Profile e o Quality Gate reais do projeto têm prioridade sobre as referências de cobertura e duplicação desta
+  skill. Não presumir que todos os projetos usam os mesmos limites.
+- Não adicionar `NOSONAR` ou supressões apenas para esconder problemas, desabilitar regras, excluir arquivos sem
+  justificativa técnica real, reduzir cobertura exigida nem alterar o Quality Gate para fazer código ruim passar. Corrigir
+  a causa. Falso positivo comprovado deve seguir o processo do projeto e possuir justificativa técnica rastreável.
+- Quando houver scanner local já configurado e sua execução for segura no fluxo existente, executar a análise do projeto
+  afetado. Não inventar configuração. Se o scan depender da CI ou de credenciais, executar as validações locais cabíveis,
+  proteger tokens e informar claramente que o Quality Gate não foi confirmado.
+- Se a CI ou o SonarQube reportar problema introduzido pela tarefa, corrigir a causa e repetir a validação relevante antes
+  de concluir. Registrar achados legados fora do New Code somente como limite, sem corrigi-los sem pedido explícito.
+
+## Checklist obrigatório antes de finalizar alteração de código
+
+Responder mentalmente e corrigir qualquer problema encontrado antes de concluir:
+
+1. Introduzi algum bug provável?
+2. Introduzi vulnerabilidade?
+3. A autorização está correta?
+4. Entradas externas estão validadas?
+5. Criei duplicação relevante?
+6. Aumentei complexidade sem necessidade?
+7. Existe código morto?
+8. Existem imports ou variáveis sem uso?
+9. Existem exceções silenciosas?
+10. Há secrets ou dados sensíveis?
+11. Alguma regra de negócio precisa de teste?
+12. Corrigi um bug que deveria possuir teste de regressão?
+13. Existe provável violação de SonarQube no código que alterei?
+14. Estou mascarando algum problema em vez de corrigir sua causa?
+15. O código tocado ficou pelo menos tão sustentável quanto estava?
 
 # 🔐 SEGURANÇA
 

@@ -94,6 +94,35 @@ Stop only the affected repository and report it as blocked when there is a merge
 secret or unsafe artifact, an external side effect outside the authorization, an indeterminate version, or a functional
 failure caused by the diff. A blocked repository does not automatically block other independent repositories.
 
+## Review code quality in the diff
+
+Before versioning or committing, review the complete diff, every touched file, and directly affected contracts under the
+Clean as You Code policy from `global-doc-agent`. This is a focused review of New Code, not authorization for a
+repository-wide SonarQube audit or unrelated legacy refactoring.
+
+Check whether the diff introduces or aggravates:
+
+- obvious bugs, inconsistent returns, unsafe null/property access, runtime errors, unexpected side effects, resource leaks,
+  concurrency failures, or probable regressions;
+- vulnerabilities, missing authentication or authorization, unvalidated external input, injection, unsafe file/URL handling,
+  exposed secrets, credentials, tokens, sensitive data, or sensitive logs;
+- unused imports or variables, unreachable or commented-out code, obsolete branches, and other dead code caused by the change;
+- significant duplication, excessive cognitive or cyclomatic complexity, deep nesting, oversized responsibilities, or
+  abstractions created only to manipulate a metric;
+- silent error handling, including empty `catch` blocks or equivalents that neither handle, propagate, safely log, nor
+  convert the failure;
+- missing relevant tests, especially for business rules, validation, authorization, critical behavior, changed contracts,
+  and bug regressions;
+- evident violations of the project's active SonarQube Quality Profile or Quality Gate on New Code.
+
+Correct in-scope problems before committing. Do not mask them with `NOSONAR`, unjustified suppressions or exclusions,
+disabled rules, reduced coverage requirements, or a weakened Quality Gate. If a safe correction requires an unresolved
+product decision or broader authority, block only that repository and report the concrete issue.
+
+When SonarQube, SonarScanner, lint, tests, coverage, or static-analysis commands are already configured and reasonable in
+the project's existing workflow, use those commands without inventing configuration. If the scan cannot run, report which
+focused validations were performed and state explicitly that the Quality Gate was not confirmed.
+
 ## Reconcile required documentation
 
 For every changed repository, determine from the complete diff and executable sources whether the change affects behavior,
@@ -205,8 +234,8 @@ git diff --cached --check
 ```
 
 Confirm that the staged diff is exactly the reviewed complete diff, including additions and deletions; `VERSION` is staged
-and byte-exact; no secret or unwanted artifact is included; documentation matches the final behavior; and the SemVer class
-still fits the staged impact.
+and byte-exact; no secret or unwanted artifact is included; documentation matches the final behavior; the focused code
+quality review remains valid; and the SemVer class still fits the staged impact.
 
 If staging changes the impact assessment, recalculate the class and version, rerun affected validations, restage, and
 repeat the review.

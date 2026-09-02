@@ -42,6 +42,13 @@ vulnerabilidades, code smells ou duplicações, com Security Hotspots revisados 
 configurado no projeto. Achados antigos no Overall Code permanecem fora do escopo até que o fluxo correspondente
 seja tocado ou exista um pedido explícito de saneamento.
 
+A hierarquia de qualidade mantém a política tecnológica agnóstica no `global-doc-agent`: confiabilidade, segurança,
+manutenibilidade, complexidade, duplicação, Security Hotspots, testes/cobertura, dívida técnica, tratamento de erros,
+código morto e o checklist obrigatório de conclusão. `laravel-doc-agent` e `frontend-doc-agent` apenas complementam essa
+base com verificações próprias de suas stacks, sem repetir ou substituir a política global. Os limites de cobertura de
+80% e duplicação inferior a 3% no New Code são referências quando o projeto não definir valores próprios; o Quality
+Profile e o Quality Gate reais sempre prevalecem.
+
 O `laravel-doc-agent` documenta padrões obrigatórios para evitar controllers gigantes:
 controllers devem apenas orquestrar HTTP, enquanto regra de negócio, validação, autorização, queries,
 serialização e integrações devem ficar em services/actions/use cases e recursos próprios do Laravel.
@@ -55,8 +62,11 @@ replay e reconexão sem polling no banco. O contrato completo fica na
 [referência SSE da skill Laravel](skills/laravel-doc-agent/references/sse.md).
 
 O `commit-projects` é uma skill operacional de invocação explícita. Use `$commit-projects` quando quiser revisar o
-diff completo, reconciliar a documentação, aplicar SemVer e criar um commit local. Apenas instalar ou citar essa
-skill na documentação não autoriza commits, e ela nunca executa push sem um pedido separado e explícito.
+diff completo, revisar a qualidade do New Code e dos contratos diretamente afetados, reconciliar a documentação, aplicar
+SemVer e criar um commit local. Essa revisão procura problemas evidentes de confiabilidade, segurança, manutenção,
+complexidade, duplicação, tratamento de erros e testes somente no escopo tocado; não é uma auditoria geral do repositório.
+Apenas instalar ou citar essa skill na documentação não autoriza commits, e ela nunca executa push sem um pedido separado
+e explícito.
 
 ## Instalação (URL raw)
 

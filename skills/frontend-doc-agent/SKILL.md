@@ -99,22 +99,32 @@ Organizar chaves por dominio de feature, usando uma estrutura aninhada equivalen
 - Atualizar testes de componentes/paginas quando comportamento mudar
 - Evitar regressao visual em fluxos criticos
 
-# SONARQUBE E CLEAN AS YOU CODE
+# QUALIDADE FRONTEND E SONARQUBE
 
-Todo código frontend criado ou alterado deve respeitar o Quality Profile e o Quality Gate SonarQube ativos no projeto:
+Aplicar integralmente a política de qualidade e o checklist do `global-doc-agent`. Esta seção apenas especializa o New Code
+de interface e deve preservar a tecnologia, a arquitetura e as bibliotecas já adotadas:
 
-- Ler somente a configuração SonarQube do frontend afetado e seus comandos de análise, quando existirem.
-- Não introduzir novos bugs, vulnerabilidades, code smells, Security Hotspots sem revisão ou duplicação no New Code.
-- Antes de criar componente, hook, utilitário, regra de validação, transformação de dados ou estilo repetido, verificar os equivalentes do módulo afetado e os compartilhados diretamente usados por ele.
-- Reutilizar quando comportamento e contrato forem realmente iguais. Não criar abstração genérica apenas para reduzir uma ocorrência métrica de duplicação.
-- Evitar duplicar blocos de JSX/templates, chamadas de API, tratamento de estados, validações, mapeamentos e regras de estilo dentro do fluxo alterado.
-- Manter componentes e funções coesos, reduzir complexidade cognitiva, retornos ambíguos, condicionais aninhadas, efeitos colaterais ocultos e código morto.
-- Não inserir HTML inseguro, `eval`, URLs não validadas, segredos no bundle, tokens em logs ou armazenamento inseguro. Sanitizar conteúdo externo e preservar as proteções do framework contra XSS e injeção.
-- Atualizar testes do comportamento alterado e a cobertura do New Code conforme o Quality Gate do projeto; não criar testes que apenas executem linhas sem validar resultado observável.
-- Não silenciar achados com `NOSONAR`, comentários de supressão, exclusões ou desativação de regras. Falso positivo exige evidência e justificativa conforme o processo do projeto.
-- Executar lint, tipagem, testes e análise Sonar local já configurada e segura para o módulo afetado. Se o scan depender da CI ou de credenciais, não improvisar nem expor segredos; informar a validação pendente.
+- Evitar componentes excessivamente grandes, responsabilidades misturadas e duplicação de JSX/templates, chamadas de
+  API, validações, mapeamentos, estados e estilos. Extrair somente unidades com responsabilidade e contrato claros.
+- Evitar estados redundantes e derivados armazenados sem necessidade, effects desnecessários e efeitos colaterais ocultos.
+- Tratar promises e erros explicitamente; não deixar rejeições sem tratamento nem usar `catch` vazio.
+- Tratar dados da API e qualquer HTML externo como não confiáveis. Preservar escaping do framework, sanitizar quando HTML
+  dinâmico for indispensável e evitar `eval`, URLs não validadas e APIs inseguras de injeção de HTML.
+- Nunca colocar secrets no bundle, em variáveis públicas, source maps, logs ou armazenamento inseguro do cliente.
+- Modelar loading, erro e empty state quando aplicáveis ao fluxo, sem deixar estado inconsistente após falhas ou retries.
+- Fazer cleanup de listeners, subscriptions, observers, timers e requisições canceláveis quando seu ciclo de vida exigir,
+  evitando memory leaks e atualizações após desmontagem.
+- Manter TypeScript consistente com os contratos reais da API, tratar nulabilidade e evitar `any` desnecessário. Não usar
+  assertions ou casts apenas para esconder incompatibilidade de tipo.
+- Remover imports, variáveis, props, handlers e branches sem uso que resultem da alteração.
+- Preservar semântica HTML, teclado, foco, rótulos e acessibilidade aplicáveis aos componentes tocados.
+- Testar comportamento observável, contratos da API, estados assíncronos e correções de regressão relevantes.
+- Executar lint, tipagem, testes, build e Sonar já configurados para o módulo afetado. Não inventar configuração nem afirmar
+  que o Quality Gate passou quando o scan não foi executado.
+- Não introduzir biblioteca, framework, gerenciador de estado ou arquitetura nova sem necessidade demonstrada pela tarefa.
 
-Em frontend existente, corrigir os achados relacionados ao New Code e às linhas tocadas. Não procurar nem corrigir telas ou módulos não relacionados para limpar o Overall Code.
+Em frontend existente, limitar a inspeção e as correções ao New Code, às linhas tocadas e aos contratos diretos. Não limpar
+ou modernizar outras telas apenas por haver dívida no Overall Code.
 
 # DOCUMENTACAO
 
