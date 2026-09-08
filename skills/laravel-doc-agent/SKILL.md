@@ -17,6 +17,20 @@ Skill de apoio para mudanças em projetos Laravel.
 - Não ampliar o pedido para refatorar controllers, models, rotas, autenticação, auditoria, tratamento de erros ou healthchecks fora do fluxo afetado.
 - Em projeto Laravel novo, aplicar os padrões desde a base no escopo solicitado.
 
+# INTEGRAÇÃO COM O GLOBAL E FRONTEND
+
+Consultar `global-doc-agent` pelo catálogo disponível e suas referências pertinentes. Global define requisitos;
+esta skill define implementação Laravel. Não reiniciar leituras já realizadas nem duplicar a política global.
+Se houver Blade ou outra UI afetada, consultar também `frontend-doc-agent`. API pura não exige tela Sobre,
+termos públicos ou módulo frontend: disponibilizar versão e informações necessárias pelo contrato/canal adequado.
+A página operacional de status, quando necessária, é exceção mínima ao backend-only, não autorização para adotar
+uma stack frontend. Componentes web eventualmente tocados continuam seguindo a skill frontend.
+
+Ao implementar identificação de versão, usar a fonte de release existente por configuração Laravel e serialização
+apropriada; expor somente metadados permitidos ao destinatário. Não criar endpoint novo se o contrato atual resolver.
+Padrões de IDs, auth, payload e rotas abaixo são defaults na ausência de decisão local compatível; não migrar contratos
+existentes apenas para padronizar. JWT exige pacote existente/selecionado compatível: não presumir comando/guard instalado.
+
 # ORDEM
 
 1. Ler documentação local relevante do projeto Laravel, se existir
@@ -122,8 +136,9 @@ Antes de mexer em controller grande:
 
 # HEALTHCHECK E STATUS (OBRIGATORIO)
 
-- Todo backend Laravel novo deve expor endpoints publicos de monitoramento: `GET /health/live`, `GET /health/ready`
-  e `GET /status`
+- Todo backend Laravel novo deve fornecer `GET /health/live`, `GET /health/ready` e status operacional quando útil.
+  Liveness pode ser público com payload mínimo; readiness detalhada e `GET /status` exigem rede/identidade autorizada.
+  Se houver status público, apresentar somente disponibilidade agregada, sem serviços internos ou detalhes de infraestrutura
 - Em backend existente, aplicar esta seção somente quando a tarefa criar ou alterar health/status, monitoramento,
   deploy ou infraestrutura dependente desses endpoints
 - Manter `GET /health` como alias simples de liveness quando houver necessidade de compatibilidade
@@ -135,10 +150,10 @@ Antes de mexer em controller grande:
 - Readiness deve retornar `200` com `status: ok` quando todos os checks criticos estiverem saudaveis
 - Readiness deve retornar `200` com `status: degraded` quando apenas checks nao criticos falharem
 - Readiness deve retornar `503` com `status: error` quando qualquer check critico falhar
-- Payload de readiness deve incluir `status`, `uptime`, `timestamp` e objeto `checks`
-- Cada check deve informar `status`, `latency_ms`, `critical` e detalhes seguros quando necessario
-- `GET /status` deve ser uma pagina HTML para humanos consumindo `/health/ready`
-- A pagina `/status` deve exibir status geral, API, uptime, ultima verificacao, servicos e latencia
+- No canal operacional autorizado, payload de readiness deve incluir `status`, `uptime`, `timestamp` e objeto `checks`
+- Nesse canal, cada check deve informar `status`, `latency_ms`, `critical` e detalhes seguros quando necessario
+- Quando necessário, `GET /status` deve ser uma pagina HTML operacional consumindo `/health/ready` com o mesmo controle de acesso
+- A pagina operacional autorizada `/status` deve exibir status geral, API, uptime, ultima verificacao, servicos e latencia
 - A pagina `/status` pode usar tema escuro e atualizacao automatica curta, como 5 segundos
 - Docker/Swarm/Kubernetes devem usar `/health/live` no healthcheck/liveness do container
 - Nao usar `/health/ready` como healthcheck de container; readiness deve orientar roteamento/trafego
@@ -146,7 +161,8 @@ Antes de mexer em controller grande:
 - Centralizar execucao e agregacao dos checks em service dedicado, como `App\Support\Health\ReadinessService`
 - Para adicionar checks, criar classe em `app/Support/Health/Checks`, implementar `name()` e `run()`
 - Documentar endpoints, payloads, checks, criticidade e exemplos de configuracao Docker/Swarm
-- Cobrir liveness e readiness com testes feature, incluindo falha critica, falha nao critica e sucesso
+- Cobrir liveness e readiness com testes feature, incluindo falha critica, falha nao critica, sucesso e
+  acesso negado/ausência de detalhes internos para destinatários não autorizados
 
 # DADOS E SEGURANCA
 
@@ -182,7 +198,10 @@ Antes de mexer em controller grande:
 
 # AUDITORIA (OBRIGATORIO)
 
-- Todo projeto Laravel novo deve ter auditoria base com `owen-it/laravel-auditing`
+- Todo projeto Laravel novo deve avaliar operações auditáveis conforme o Global. Quando necessárias, implementar
+  auditoria base com `owen-it/laravel-auditing`, salvo solução equivalente já adotada ou justificativa documentada.
+  Verificar manutenção, compatibilidade, licença e vulnerabilidades antes de adicionar o pacote
+- As regras de configuração abaixo se aplicam ao usar esse pacote; não instalar auditoria para operações triviais
 - Em projeto existente, aplicar esta seção somente quando a tarefa criar ou alterar auditoria ou modelos/fluxos cujo
   contrato de auditoria seja diretamente afetado; não instalar o pacote nem revisar outros modelos por uma mudança não relacionada
 - Adicionar/configurar `config/audit.php` com auditoria controlada por `AUDITING_ENABLED` e default `true`
@@ -194,11 +213,12 @@ Antes de mexer em controller grande:
 - Em ambientes com proxy/CDN/load balancer, confiar em headers como `CF-Connecting-IP`, `True-Client-IP`
   e `X-Forwarded-For` somente quando a origem da requisicao for confiavel
 - Em producao publica, preferir lista explicita de IPs/CIDRs dos proxies reais por variavel de ambiente
-- Quando usar `X-Forwarded-For`, extrair e validar corretamente o primeiro IP publico valido da lista
+- Quando usar `X-Forwarded-For`, resolver a cadeia a partir dos proxies confiáveis com os recursos do framework;
+  não aceitar o primeiro IP público sem validar a cadeia, pois pode ter sido inserido pelo cliente
 - Se a origem da requisicao nao for confiavel, usar apenas `REMOTE_ADDR`
 - Criar migration da tabela `audits` compativel com o padrao de IDs do projeto
 - Quando o projeto usar ULID, definir `user_id` e `auditable_id` como `char(26)`
-- Modelos persistentes de dominio devem implementar `OwenIt\Auditing\Contracts\Auditable` e usar o trait
+- Modelos persistentes de dominio abrangidos pela finalidade de auditoria devem implementar `OwenIt\Auditing\Contracts\Auditable` e usar o trait
   `OwenIt\Auditing\Auditable`, exceto quando houver justificativa explicita
 - Para telas administrativas ou historico de entidades, expor endpoints autenticados de historico quando fizer sentido
 - Documentar a implantacao da auditoria, variaveis de ambiente, modelos auditados e exemplos de retorno
@@ -225,7 +245,7 @@ try {
     // regra de negocio / chamada externa / persistencia
 } catch (Throwable $e) {
     Log::error('Falha ao processar operacao X', [
-        'error' => $e->getMessage(),
+        'error_type' => 'operation_failed',
         'context' => [
             // dados de contexto sem segredo
         ],
@@ -298,7 +318,7 @@ outros módulos apenas por haver dívida no Overall Code.
 
 # DOCUMENTACAO
 
-Se houver alteracao funcional no escopo tocado:
+Se a mudança afetar comportamento, configuração, arquitetura, API, deploy ou operação no escopo tocado:
 - atualizar docs do projeto
-- atualizar index da documentacao local
+- manter index/MOC da documentacao local coerente, editando quando links, navegação ou resumo mudarem
 - manter exemplos de uso e contratos atualizados

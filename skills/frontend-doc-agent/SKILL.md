@@ -17,6 +17,13 @@ Skill de apoio para mudancas de frontend em qualquer linguagem, framework ou pla
 - Não ampliar o pedido para uma refatoração, migração visual, adoção de biblioteca, i18n global ou revisão de acessibilidade do projeto inteiro.
 - Em frontend novo, aplicar os padrões desde a base no escopo solicitado.
 
+# INTEGRAÇÃO COM O GLOBAL
+
+Consultar `global-doc-agent` pelo catálogo disponível antes de implementar e ler suas referências acionadas pela tarefa.
+O Global define requisitos transversais; esta skill implementa componentes, estado, estilo, temas, i18n e validação visual.
+Não duplicar documentos de governança nem reiniciar leituras já realizadas. Se uma skill de plataforma estiver disponível,
+combiná-la com estes padrões: mobile usa semântica e acessibilidade nativas, sem impor HTML, Tailwind ou APIs de navegador.
+
 # ORDEM
 
 1. Ler documentacao local relevante do frontend, se existir
@@ -31,7 +38,7 @@ Skill de apoio para mudancas de frontend em qualquer linguagem, framework ou pla
 - Evitar componentes gigantes; extrair partes com responsabilidade clara
 - Manter separacao entre apresentacao, estado e acesso a API
 - Reutilizar componentes e tokens existentes antes de criar novos
-- Usar um unico Tailwind por projeto; separar apenas os tokens de cor para temas light e dark
+- Quando o projeto usar Tailwind, usar uma única instalação/configuração base; separar apenas os tokens de cor para temas light e dark. Não adotar Tailwind onde a stack já usa outra solução
 - Em frontend novo, oferecer temas light e dark. Em projeto existente, respeitar e completar ambos os temas somente nos componentes e fluxos visuais tocados, sem iniciar migração global fora do pedido
 
 # I18N
@@ -88,15 +95,21 @@ Organizar chaves por dominio de feature, usando uma estrutura aninhada equivalen
 
 # UX, ACESSIBILIDADE E PERFORMANCE
 
-- Preservar navegacao por teclado e semantica HTML
-- Revisar estados de loading, erro e vazio
+- Implementar os requisitos de UX do Global nos componentes afetados: labels associados, semântica HTML ou nativa,
+  teclado/foco quando aplicáveis, contraste, erro identificável e informação que não dependa apenas de cor
+- Modelar loading, vazio, erro, sucesso, sem permissão, sessão expirada e offline conforme o fluxo; preservar dados
+  editados e oferecer ação de recuperação quando possível, sem tratar erro HTTP como ausência de rede
+- Validar interação e renderização relevantes, incluindo tecnologia assistiva quando pertinente; não depender só do build
 - Evitar renderizacoes desnecessarias e bundles maiores sem necessidade
-- Garantir responsividade minima desktop/mobile
+- Em web, conferir responsividade desktop/mobile e tamanhos intermediários relevantes, overflow e espaço útil dos componentes
+- Ao implementar Sobre, suporte, licenças ou novidades, reutilizar navegação/componentes existentes e consumir metadados
+  de versão confiáveis. Aplicar a separação de informação pública/interna do Global e preservar temas/i18n do projeto
 
 # QUALIDADE
 
 - Validar tipagem e contratos de dados
-- Atualizar testes de componentes/paginas quando comportamento mudar
+- Atualizar testes de componentes/paginas pertinentes quando comportamento relevante mudar e houver infraestrutura;
+  não criar testes artificiais para alterações visuais triviais
 - Evitar regressao visual em fluxos criticos
 
 # QUALIDADE FRONTEND E SONARQUBE
@@ -128,7 +141,7 @@ ou modernizar outras telas apenas por haver dívida no Overall Code.
 
 # DOCUMENTACAO
 
-Se houver alteracao funcional no escopo tocado:
+Se a mudança afetar comportamento, configuração, contratos, decisões de UI ou processo no escopo tocado:
 - atualizar docs do frontend
-- atualizar index da documentacao local
+- manter index/MOC da documentacao local coerente, editando quando links, navegação ou resumo mudarem
 - registrar decisoes de UI relevantes para o time

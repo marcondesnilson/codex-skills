@@ -165,6 +165,14 @@ it if it is in scope and report that it could not be included in a project commi
 Classify SemVer by the underlying behavior, not by the number of documentation files added. A documentation-only change
 remains `PATCH` unless it itself changes a published contract.
 
+## Release governance integration
+
+Consult the applicable release-management reference from the installed `global-doc-agent` when the diff affects release
+notes, compatibility, migrations or significant features. Keep technical release details separate from user-facing notes;
+review licensing when dependencies/distribution change and privacy when data processing changes. Update only artifacts
+required by the project or the actual impact, without creating empty changelogs or public legal pages by default.
+This integration does not change authorization, repository discovery, HEAD-based versioning, staging or push boundaries.
+
 ## Classify Semantic Versioning
 
 Classify the complete pre-bump diff of each repository independently:
