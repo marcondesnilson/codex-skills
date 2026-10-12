@@ -7,6 +7,7 @@ Repositório público de skills reutilizáveis para projetos com Codex.
 - global-doc-agent
 - laravel-doc-agent
 - frontend-doc-agent
+- frontend-visual-quality (opcional, para auditoria e refinamento visual)
 - commit-projects
 
 ## Uso obrigatório no projeto
@@ -20,6 +21,7 @@ cite-a no `AGENTS.md` que governa os arquivos envolvidos. Use um bootstrap expl�
 - Sempre use `global-doc-agent` antes de alterar este projeto.
 - Use também `laravel-doc-agent` em qualquer tarefa que toque código, configuração, testes ou documentação Laravel.
 - Use também `frontend-doc-agent` em qualquer tarefa que toque frontend, interface ou experiência visual.
+- Use `frontend-visual-quality` quando a tarefa envolver criação, redesign ou refinamento visual e a skill estiver instalada; não a exigir para correções puramente funcionais.
 - As instruções dessas skills são obrigatórias dentro do escopo em que forem citadas.
 - Em código existente, aplique-as somente ao fluxo e aos arquivos tocados e às dependências diretas necessárias.
 - Não audite, procure problemas, refatore ou corrija áreas não relacionadas; a adequação do legado deve ser gradual.
@@ -90,6 +92,7 @@ skills/
 │       ├── security-baseline.md
 │       └── tracking-and-audit.md
 ├── frontend-doc-agent/SKILL.md
+├── frontend-visual-quality/SKILL.md
 ├── laravel-doc-agent/
 │   ├── SKILL.md
 │   └── references/sse.md
@@ -150,3 +153,9 @@ Não há migration de banco neste repositório documental.
 
 A [revisão estrutural e cenários A–J](docs/governance-review.md) registra preservações, conflitos resolvidos e limites da
 validação. As referências são normativas; o relatório é evidência desta revisão, não um segundo conjunto de regras.
+
+## Auditoria visual opcional
+
+A skill [`frontend-visual-quality`](skills/frontend-visual-quality/SKILL.md) complementa `frontend-doc-agent` em tarefas de criação, redesign e refinamento visual. Ela define diagnóstico, critérios de aceitação e inspeção de renderização real, sem impor React, Vue, Tailwind ou uma biblioteca nova. Aplique-a ao escopo da tarefa, não ao sistema inteiro.
+
+Stitch via MCP e Impeccable são **opcionais**: só devem ser utilizados quando disponíveis e relevantes. Playwright (ou navegador equivalente) pode produzir evidências de screenshots e estados reais, mas sua ausência deve ser informada, sem simular validação. Instalar a skill não a torna obrigatória automaticamente; declare seu uso no `AGENTS.md` aplicável quando desejar adotá-la.
