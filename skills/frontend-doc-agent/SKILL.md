@@ -145,3 +145,15 @@ Se a mudança afetar comportamento, configuração, contratos, decisões de UI o
 - atualizar docs do frontend
 - manter index/MOC da documentacao local coerente, editando quando links, navegação ou resumo mudarem
 - registrar decisoes de UI relevantes para o time
+
+
+# RECONSTRUÇÃO VISUAL AUTORIZADA E PORTABILIDADE
+
+- Aplicar estas regras a qualquer stack de frontend, web ou nativa; identificar ferramentas e convenções reais antes de executar.
+- Distinguir manutenção pontual de redesign completo. Quando o pedido autorizar reconstrução completa, é permitido substituir toda a apresentação **dentro das telas e fluxos solicitados**, preservando regras de negócio, permissões, navegação, contratos e comportamento.
+- A interface anterior é referência funcional; o design aprovado é referência visual. Não conservar markup ou CSS inadequados apenas por existirem.
+- Consultar `frontend-visual-quality` em criação, redesign, migração ou refinamento visual quando instalada e declarada no AGENTS aplicável. A skill especializada conduz comparação e refinamento; esta mantém os contratos de implementação.
+- Antes de alterar componente compartilhado, identificar consumidores diretamente afetados e testar compatibilidade. Não alterar aparência de outros consumidores por acidente.
+- Em motores configuráveis (JSON/API/banco), preservar o esquema, renderizador, personalização, isolamento por tenant, cache e versionamento existentes. Adicionar variantes compatíveis quando uma alteração quebraria configurações já publicadas; nunca fixar uma variante a domínio específico.
+- Não transformar configuração multi-tenant em requisito para projetos que não a utilizam.
+- Não executar deploy, operações destrutivas ou modificações de produção sem autorização explícita.

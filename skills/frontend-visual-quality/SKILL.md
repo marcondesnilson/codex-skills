@@ -52,3 +52,22 @@ Complementar `frontend-doc-agent` com critérios verificáveis de acabamento vis
 - Problemas visuais relevantes do escopo corrigidos ou documentados com justificativa.
 - Evidências reais de inspeção visual e validação funcional informadas; pendências declaradas.
 - Documentação local atualizada somente quando houver decisão ou comportamento relevante alterado.
+
+
+# CICLO AUTÔNOMO DE FIDELIDADE VISUAL
+
+Quando a tarefa autorizar criação ou redesign, executar o ciclo abaixo **somente no escopo solicitado**, sem checkpoints de aprovação intermediários desnecessários:
+
+1. Identificar o design aprovado e as condições comparáveis (viewport, tema, conteúdo, estado). Se Stitch via MCP estiver disponível e o design indicado, consultar a fonte e seus assets; não exigir Stitch quando não for relevante.
+2. Mapear funcionalidades, contratos, acessibilidade e consumidores dos componentes atuais antes de substituí-los.
+3. Implementar ou reconstruir a apresentação com liberdade proporcional ao redesign autorizado, preservando comportamento e integrações. Não limitar a mudança a CSS antigo.
+4. Executar build, tipagem, lint e testes pertinentes existentes; corrigir falhas introduzidas.
+5. Inspecionar a aplicação real com Playwright, navegador equivalente ou ferramenta nativa compatível (por exemplo, testes Flutter em emulador/dispositivo). Capturar evidências reais em resoluções e estados relevantes.
+6. Comparar com a referência: hierarquia, grid, densidade, tipografia, cores, imagens, ícones, espaçamentos, bordas, sombras, temas, estados e responsividade.
+7. Corrigir diferenças materiais e repetir testes e inspeção até cumprir os critérios ou encontrar bloqueio demonstrável. Não alegar equivalência pixel a pixel sem medição adequada.
+8. Entregar resumo dos fluxos, dispositivos/viewports, evidências, testes e limitações. Não inventar resultados ou acesso a ferramentas.
+
+- Impeccable é um recurso opcional de crítica visual quando instalado e relevante, não um requisito universal.
+- Não instalar ferramentas ou dependências apenas para simular conformidade; utilizar as disponíveis e declarar impedimentos reais.
+- Para componentes compartilhados ou motores multi-tenant, validar os consumidores diretamente afetados e preservar variantes anteriores quando necessário.
+- Mudanças em produção, deploy, dados reais, commits e push permanecem sujeitos a autorização explícita.

@@ -159,3 +159,20 @@ validação. As referências são normativas; o relatório é evidência desta r
 A skill [`frontend-visual-quality`](skills/frontend-visual-quality/SKILL.md) complementa `frontend-doc-agent` em tarefas de criação, redesign e refinamento visual. Ela define diagnóstico, critérios de aceitação e inspeção de renderização real, sem impor React, Vue, Tailwind ou uma biblioteca nova. Aplique-a ao escopo da tarefa, não ao sistema inteiro.
 
 Stitch via MCP e Impeccable são **opcionais**: só devem ser utilizados quando disponíveis e relevantes. Playwright (ou navegador equivalente) pode produzir evidências de screenshots e estados reais, mas sua ausência deve ser informada, sem simular validação. Instalar a skill não a torna obrigatória automaticamente; declare seu uso no `AGENTS.md` aplicável quando desejar adotá-la.
+
+
+## Fluxo autônomo de implementação visual (qualquer frontend)
+
+Para ativar em um projeto consumidor, instale as **pastas completas** das skills e declare no `AGENTS.md` aplicável:
+
+```md
+- Use `global-doc-agent` nas tarefas deste projeto.
+- Use `frontend-doc-agent` sempre que tocar interface web ou nativa.
+- Use `frontend-visual-quality` em criação, redesign, migração e refinamento visual, quando instalada.
+- Em redesign autorizado, permita reconstruir a camada visual do escopo solicitado; preserve comportamento e contratos.
+- Valide a renderização real e as interações com as ferramentas disponíveis; informe limitações sem inventar evidências.
+```
+
+O ciclo de fidelidade visual está centralizado nas skills e funciona com Vue, Nuxt, React, Next.js, Blade, Flutter ou outra stack compatível. Stitch/MCP, Impeccable e Playwright são integrações condicionais, não pré-requisitos universais. Em sistemas configuráveis ou multi-tenant, preserve contratos e consumidores existentes; não associe layouts fixos a domínios.
+
+Atualizar este repositório **não atualiza automaticamente** skills já instaladas em outros projetos. Atualize as pastas completas no ambiente consumidor e mantenha o bootstrap no `AGENTS.md` pertinente.
