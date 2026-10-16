@@ -176,3 +176,7 @@ Para ativar em um projeto consumidor, instale as **pastas completas** das skills
 O ciclo de fidelidade visual está centralizado nas skills e funciona com Vue, Nuxt, React, Next.js, Blade, Flutter ou outra stack compatível. Stitch/MCP, Impeccable e Playwright são integrações condicionais, não pré-requisitos universais. Em sistemas configuráveis ou multi-tenant, preserve contratos e consumidores existentes; não associe layouts fixos a domínios.
 
 Atualizar este repositório **não atualiza automaticamente** skills já instaladas em outros projetos. Atualize as pastas completas no ambiente consumidor e mantenha o bootstrap no `AGENTS.md` pertinente.
+
+## Sincronização centralizada
+
+Para distribuir atualizações das pastas completas das skills para o catálogo local do Codex, consulte [o guia de sincronização](docs/skills-sync.md). O processo usa dry-run por padrão, preserva modificações locais e permite agendamento opcional após validação. Atualizar o catálogo não altera automaticamente o AGENTS.md dos projetos.
