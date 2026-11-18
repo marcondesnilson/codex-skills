@@ -1,73 +1,42 @@
 ---
 name: frontend-visual-quality
-description: Auditar e refinar a qualidade visual de interfaces web no escopo solicitado, com referências, evidências de navegador e preservação de comportamento. Use em tarefas de criação, redesign ou refinamento visual quando citada no AGENTS.md ou solicitada.
+description: Orientar criação, redesign e refinamento visual de interfaces web com inspeção real no navegador; use quando invocada ou selecionada para esse escopo.
 ---
 
-# Objetivo
+# Objetivo e limites
 
-Complementar `frontend-doc-agent` com critérios verificáveis de acabamento visual. Não substituir governança do `global-doc-agent`, testes funcionais ou decisões de produto. Não é um agente autônomo nem depende de um framework específico.
+Use esta skill em criação, redesign ou refinamento visual quando ela for invocada ou selecionada para a tarefa. Respeite as instruções superiores e o escopo do usuário. A autorização para redesign vale somente até onde o usuário pediu. Correção exclusivamente funcional ou tarefa sem mudança de interface não exige auditoria visual completa.
 
-# Escopo e precedência
+Esta skill fornece instruções ao Codex. O navegador ou MCP disponível captura e inspeciona a aplicação real. O helper em `scripts/visual_review.py` oferece operações locais de aceite e, somente com autorização específica por tarefa, envia à Responses API ou à Images API arquivos locais explicitamente selecionados. O Codex implementa a mudança, compara os achados com a aplicação, decide correções e relata o resultado. O helper não controla navegador, não executa comandos recebidos do revisor, não aplica código e não aprova a tarefa.
 
-- Respeitar instruções superiores, `AGENTS.md` aplicável, documentação e design system do projeto.
-- Em aplicações existentes, atuar apenas nas telas, componentes e contratos diretamente afetados. Não iniciar redesign global, migração de framework ou adoção de biblioteca por conta própria.
-- Preservar comportamento, fluxos, acessibilidade, i18n, estados de interface e contratos de API.
-- React, Vue ou outra stack web: identificar a tecnologia real antes de alterar componentes e estilos. Reutilizar tokens, componentes e convenções existentes.
-- Se houver referência visual aprovada, tratá-la como direção estética; não copiar HTML gerado sem adaptar à arquitetura existente.
-- Sem referência, analisar a tela atual e propor melhorias proporcionais à tarefa; não inventar uma identidade visual corporativa.
+# Fluxo
 
-# Processo de qualidade visual
+1. Delimite a rota, os componentes, estados, escopo de usuário e critérios de aceite. Leia as instruções pertinentes do projeto e o design system existente. Em `$qa-projects`, declare um plano antes dos checks e preserve a escolha `current`/`isolated` dessa skill.
+2. Escolha o modo **criação** ou **fidelidade**; leia a [referência de criação](references/creation-mode.md) ou a [referência de fidelidade](references/fidelity-mode.md).
+3. Crie a pasta de evidências da tarefa e, quando houver prévia executável e navegador adequado, capture o estado inicial real da aplicação. Registre rota, viewport, tema, estado, ferramenta e hash da captura. Não invente screenshots.
+4. Implemente somente o escopo solicitado. Execute as verificações funcionais pertinentes.
+5. Inspecione a renderização real com Chrome DevTools MCP ou outra ferramenta adequada disponível. Playwright não é obrigatório e não deve ser instalado apenas para cumprir este fluxo. Inspecione seções e interações pertinentes; o primeiro viewport não valida sozinho uma página longa.
+6. Separe `review_required` de `api_execution_authorized`. Se o plano de `$qa-projects` declarar impacto em apresentação/interação, a revisão visual externa é requisito de aceite; falta de serviço, autorização ou evidência resulta em `BLOCKED`, salvo falha confirmada (`FAIL`). Uma API key não autoriza a chamada. Só execute uma operação API com autorização por tarefa e permissão explícita de execução; caso contrário, registre-a como não executada e não aprove o gate visual obrigatório.
+7. Compare os achados do revisor com a interface real e os critérios de aceite. Corrija problemas confirmados dentro do escopo. Repita a inspeção após mudanças relevantes; pare quando os critérios forem atendidos ou houver limite/bloqueio documentado. Registre cada ciclo visual sem API com `record-cycle`; uma revisão API ao vivo registra automaticamente o próprio ciclo. Não repita revisão por API com evidências iguais nem continue sem progresso demonstrável.
+8. Mantenha uma pasta privada de evidências por tarefa. Separe o resultado funcional, a inspeção visual real, a resposta consultiva e a conclusão geral. Declare telas, estados ou dispositivos não inspecionados e pendências.
 
-1. **Contexto**: identificar tela/fluxo, restrições, componentes existentes, temas e estados relevantes; ler apenas a documentação pertinente.
-2. **Referência**: localizar design aprovado, screenshot ou padrões locais. Registrar se não existir referência. Se houver MCP do Stitch disponível e o projeto/tarefa indicar um design específico, consultá-lo; caso contrário, não exigir Stitch.
-3. **Diagnóstico**: examinar hierarquia visual, densidade de informação, grid, alinhamento, tipografia, escala, espaços, contraste, estados, consistência e responsividade. Distinguir problema de preferência estética.
-4. **Implementação**: ajustar no menor escopo possível; priorizar tokens e componentes compartilhados quando a mudança realmente afetar seus consumidores. Evitar valores arbitrários e overrides repetidos.
-5. **Validação funcional**: executar as verificações existentes pertinentes, incluindo lint, tipagem, testes e build quando disponíveis. Não confundir sucesso técnico com qualidade visual.
-6. **Inspeção visual**: quando houver navegador automatizável, executar a tela real e capturar evidências em desktop, mobile e largura intermediária pertinente, com tema claro/escuro quando suportados. Incluir estados críticos acessíveis no escopo. Usar Playwright se já disponível; não instalar dependência nova apenas para satisfazer este passo.
-7. **Comparação e refinamento**: comparar com referência sob viewport, tema, dados e estado equivalentes; registrar diferenças relevantes e corrigir. Repetir a inspeção das áreas afetadas após correção.
-8. **Entrega**: relatar telas verificadas, resoluções, evidências, diferenças remanescentes e verificações não executadas. Nunca afirmar fidelidade visual validada sem inspeção efetiva.
+# Critérios de conclusão
 
-# Critérios de aceitação visual
+- O escopo e os critérios de aceite estão registrados.
+- As regras do modo escolhido foram seguidas; adaptações e condições não validadas estão identificadas.
+- As verificações funcionais e inspeções reais do navegador são relatadas separadamente, com rota, viewport, tema, estado, ferramenta e hashes das evidências.
+- A revisão por API consta como **não executada**, **falhou/não aprovada** ou **achados consultivos avaliados pelo Codex**. Lista vazia de achados nunca aprova a tarefa.
+- A conclusão geral reflete somente evidências inspecionadas. Atingir o limite de ciclos não significa sucesso; não alegue equivalência pixel a pixel sem medição apropriada.
+- Em QA integrado, cada critério visual aponta para tela, região, estado, plataforma e IDs de capturas obrigatórias; uma captura ausente, obsoleta ou sem proveniência não pode ser aceita.
+- Relacione a evidência ao build servido, não apenas ao Git `HEAD`. Mudança de versão/build/configuração/direção/assets invalida checks e capturas que não correspondam ao fingerprint corrente.
+- O resultado agregado do gate é derivado da mesma evidência em state, manifest e report, na ordem `FAIL` > `BLOCKED` > `PASS WITH WARNINGS` > `PASS`.
 
-- Hierarquia clara entre título, contexto, ações principais, conteúdo e elementos secundários.
-- Alinhamentos e ritmo de espaçamento coerentes com os tokens e a densidade esperada do produto; sem vazios excessivos ou compactação que prejudique a leitura.
-- Tipografia legível e consistente em peso, tamanho, altura de linha e comprimento de texto.
-- Tabelas, filtros, formulários, modais e navegação utilizáveis nas larguras pertinentes; sem cortes, sobreposição ou overflow inesperado.
-- Contraste, foco visível, navegação por teclado, labels e estados não dependentes apenas de cor preservados.
-- Loading, vazio, erro, sucesso e demais estados aplicáveis não quebram o layout.
-- Elementos repetidos seguem o mesmo padrão; não criar componentes visualmente divergentes para a mesma função.
-- Alterações visuais não quebram interação, roteamento, responsividade ou contratos com a API.
+## Arquivos de apoio
 
-# Integrações opcionais
-
-- **Stitch via MCP**: fonte de design quando disponível e explicitamente relevante. Registrar o design consultado; não presumir acesso.
-- **Impeccable**: aplicar suas orientações de crítica/refinamento quando instalado e apropriado; não alegar uso sem realmente consultá-lo.
-- **Playwright ou navegador equivalente**: evidência de renderização e interação; screenshots não substituem testes funcionais nem comprovam automaticamente equivalência pixel a pixel.
-- Na ausência de ferramentas, executar verificações disponíveis, explicar a limitação e deixar a validação visual como pendência explícita. Não fabricar screenshots, métricas de similaridade ou aprovações.
-
-# Definition of Done
-
-- Escopo e referência identificados, ou ausência de referência registrada.
-- Implementação segue a arquitetura existente e preserva contratos.
-- Problemas visuais relevantes do escopo corrigidos ou documentados com justificativa.
-- Evidências reais de inspeção visual e validação funcional informadas; pendências declaradas.
-- Documentação local atualizada somente quando houver decisão ou comportamento relevante alterado.
-
-
-# CICLO AUTÔNOMO DE FIDELIDADE VISUAL
-
-Quando a tarefa autorizar criação ou redesign, executar o ciclo abaixo **somente no escopo solicitado**, sem checkpoints de aprovação intermediários desnecessários:
-
-1. Identificar o design aprovado e as condições comparáveis (viewport, tema, conteúdo, estado). Se Stitch via MCP estiver disponível e o design indicado, consultar a fonte e seus assets; não exigir Stitch quando não for relevante.
-2. Mapear funcionalidades, contratos, acessibilidade e consumidores dos componentes atuais antes de substituí-los.
-3. Implementar ou reconstruir a apresentação com liberdade proporcional ao redesign autorizado, preservando comportamento e integrações. Não limitar a mudança a CSS antigo.
-4. Executar build, tipagem, lint e testes pertinentes existentes; corrigir falhas introduzidas.
-5. Inspecionar a aplicação real com Playwright, navegador equivalente ou ferramenta nativa compatível (por exemplo, testes Flutter em emulador/dispositivo). Capturar evidências reais em resoluções e estados relevantes.
-6. Comparar com a referência: hierarquia, grid, densidade, tipografia, cores, imagens, ícones, espaçamentos, bordas, sombras, temas, estados e responsividade.
-7. Corrigir diferenças materiais e repetir testes e inspeção até cumprir os critérios ou encontrar bloqueio demonstrável. Não alegar equivalência pixel a pixel sem medição adequada.
-8. Entregar resumo dos fluxos, dispositivos/viewports, evidências, testes e limitações. Não inventar resultados ou acesso a ferramentas.
-
-- Impeccable é um recurso opcional de crítica visual quando instalado e relevante, não um requisito universal.
-- Não instalar ferramentas ou dependências apenas para simular conformidade; utilizar as disponíveis e declarar impedimentos reais.
-- Para componentes compartilhados ou motores multi-tenant, validar os consumidores diretamente afetados e preservar variantes anteriores quando necessário.
-- Mudanças em produção, deploy, dados reais, commits e push permanecem sujeitos a autorização explícita.
+- [Modo criação](references/creation-mode.md): direção visual e decisões antes da implementação.
+- [Modo fidelidade](references/fidelity-mode.md): alvo visual e regras de comparação/adaptação.
+- [Revisão por API](references/api-review.md): autorização, privacidade, limites, preços e comandos do helper.
+- [Contrato da API](references/api-contract.md) e [schemas JSON](schemas/): formato da revisão e autorização.
+- [Acceptance gate](references/acceptance-gate.md): plano prévio, build servido, evidência vinculada e conclusão derivada.
+- [Media Kit e direção](references/media-kit-and-direction.md): origem, classificação, conflitos e adoção de direção.
+- [Operações API](references/operations.md): autorização v2, limites, custos, dry-run e trilha comum.

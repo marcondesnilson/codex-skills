@@ -1,50 +1,100 @@
 # Sincronização centralizada das skills
 
-O repositório `codex-skills` é a fonte canônica. O script `scripts/sync-skills.py`
-sincroniza **pastas completas** (inclusive `references/`) para um catálogo local
-de skills do Codex, sem alterar repositórios consumidores nem `AGENTS.md`.
+O repositório `codex-skills` é a fonte canônica. `scripts/sync-skills.py`
+sincroniza **pastas completas** de skills, incluindo `references/`, `schemas/`
+e `scripts/`. Ele requer `--destination`, preserva diferenças locais, não remove
+arquivos, não altera código consumidor nem `AGENTS.md` e não confirma que uma
+sessão já aberta descobriu/recarregou uma skill.
 
-## Uso (Linux/macOS)
+Diretórios `__pycache__` e arquivos `.pyc`/`.pyo` são excluídos antes da leitura
+de hashes, comparação de destino, contagem de conflitos e cópia. Registros
+legados desses caminhos no manifesto permanecem inertes. O filtro do
+sincronizador complementa `.gitignore` (`__pycache__/` e `*.py[co]`); ele não
+apaga caches existentes nem limpa o manifesto.
 
-Execute no checkout deste repositório:
+## Caminhos e descoberta
+
+Na documentação pública atual consultada em 2026-11-17, os caminhos manuais
+documentados para Codex são `.agents/skills/` no projeto e `~/.agents/skills/`
+no escopo do usuário. Ambientes podem manter instalações legadas/customizadas,
+como `$CODEX_HOME/skills`. Confirme qual caminho é reconhecido pela versão e
+runtime que executarão a tarefa; não presuma descoberta só porque a pasta existe.
+
+Uma skill é uma pasta com `SKILL.md` e recursos opcionais. O `AGENTS.md` contém
+orientações para o Codex, mas não instala nem registra skills. Depois de copiar,
+confirme a skill no catálogo/contexto do ambiente e, se necessário, inicie uma
+nova sessão. A seleção automática continua sendo uma decisão do Codex; para um
+fluxo determinístico, solicite a skill explicitamente na tarefa.
+
+Fonte sobre os caminhos: [instalação manual de skills do Codex](https://developers.openai.com/api/reference/cli).
+
+## Aplicar a partir de um checkout
+
+Execute no checkout que contém a versão desejada. Sempre informe o destino.
 
 ```bash
-# Inspecionar alterações (não grava nada)
-python3 scripts/sync-skills.py --destination ~/.codex/skills
+# Simular; não grava arquivos
+python3 scripts/sync-skills.py --source "$PWD" --destination /tmp/codex-skills-check
 
-# Aplicar somente alterações seguras
-python3 scripts/sync-skills.py --destination ~/.codex/skills --apply
+# Aplicar em um diretório temporário para revisar a cópia completa
+python3 scripts/sync-skills.py --source "$PWD" --destination /tmp/codex-skills-check --apply
 ```
 
-Para testar com um checkout local, sem rede:
+Para validar alterações ainda não publicadas, `--source` deve apontar para
+este checkout local. Não clone `main` e trate a cópia como se contivesse mudanças
+que ainda não foram publicadas.
+
+Para sincronizar um catálogo Codex já confirmado, escolha explicitamente o
+destino apropriado ao ambiente. Exemplos de destinos documentados:
 
 ```bash
-python3 scripts/sync-skills.py --source . --destination /tmp/codex-skills-test --apply
+# Skill do projeto consumidor (execute na raiz do projeto)
+python3 /caminho/codex-skills/scripts/sync-skills.py \
+  --source /caminho/codex-skills --destination "$PWD/.agents/skills"
+
+# Catálogo do usuário, se esse caminho estiver reconhecido pelo runtime
+python3 /caminho/codex-skills/scripts/sync-skills.py \
+  --source /caminho/codex-skills --destination "$HOME/.agents/skills"
 ```
 
-O primeiro uso **não sobrescreve arquivos já existentes**: são classificados
-como conflitos, a menos que tenham conteúdo idêntico. Arquivos gerenciados
-recebem atualizações futuras apenas quando o hash local ainda corresponde ao
-manifesto `.codex-skills-sync.json`. Alterações locais são preservadas;
-nenhum arquivo é removido automaticamente. Se uma instalação existente divergir,
-compare e faça backup/reconciliação antes de adotar o sincronizador.
+O exemplo não é uma autorização para instalar agora nem substitui a confirmação
+do caminho suportado pelo runtime. Não direcione o sincronizador a `~/.agents`,
+`~/.codex` ou a outro projeto sem decisão explícita para a tarefa.
 
-## Atualização automática opcional
+O primeiro uso **não sobrescreve arquivos existentes**: arquivos diferentes
+são conflitos, a menos que seu conteúdo corresponda ao manifesto
+`.codex-skills-sync.json`. Arquivos gerenciados recebem atualizações futuras
+somente quando o hash local ainda corresponde ao manifesto. Alterações locais
+são preservadas, nenhum arquivo é removido automaticamente. Se o destino
+divergir, compare e reconcilie com backup antes de adotar a cópia.
 
-Depois de testar manualmente, é possível executar periodicamente via cron
-ou systemd user timer. Exemplo de cron diário, após instalar o script em um
-checkout local confiável:
+## Revisar uma pasta distribuída
 
-```cron
-0 9 * * * /usr/bin/python3 /caminho/codex-skills/scripts/sync-skills.py --destination /home/USUARIO/.codex/skills --apply
+Para `frontend-visual-quality` e `qa-projects`, a distribuição deve conter a
+pasta completa, incluindo `references/`, `schemas/`, `scripts/` e `agents/` que
+existirem:
+
+```text
+frontend-visual-quality/
+├── SKILL.md
+├── references/
+├── schemas/
+└── scripts/
+qa-projects/
+├── SKILL.md
+└── agents/
+    └── openai.yaml
 ```
 
-Adapte os caminhos e horários. Não há cron ou timer instalado automaticamente.
-Para maior previsibilidade, fixe uma tag usando `--ref` em vez de `main`.
-Mudanças do upstream passam a ser aplicadas na próxima execução agendada,
-desde que não existam conflitos locais. Faça revisão das versões antes de
-habilitar atualização automática de instruções confiadas a agentes.
+Após a sincronização temporária, compare hashes de todos os arquivos e execute
+o CLI e os testes offline dentro da pasta copiada. A suíte usa fixtures e
+transporte injetado; não precisa de chave nem rede.
 
-O sincronizador não modifica o código dos projetos, não faz deploy, não altera
-`AGENTS.md` e não garante que uma sessão Codex já aberta recarregue skills.
-Cada projeto deve declarar as skills no seu `AGENTS.md` aplicável.
+## Atualização agendada
+
+O sincronizador não instala cron nem timers. Um operador pode agendar execuções
+somente depois de testar e escolher o destino. Fixe uma referência de release
+quando aplicável, revise as mudanças de instruções e acompanhe conflitos antes
+de aplicar atualizações futuras. Uma atualização de skills não atualiza o
+`AGENTS.md` dos consumidores e não prova que uma sessão ativa recarregou o
+catálogo.

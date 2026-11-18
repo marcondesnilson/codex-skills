@@ -1,0 +1,41 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["mode", "criteria", "findings", "limitations"],
+  "properties": {
+    "mode": {"type": "string", "enum": ["creation", "fidelity"]},
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion_id", "coverage_id", "status", "assessment", "evidence", "evidence_capture_ids"],
+        "properties": {
+          "criterion_id": {"type": "string"},
+          "coverage_id": {"type": "string"},
+          "status": {"type": "string", "enum": ["evaluated", "not_evaluable"]},
+          "assessment": {"type": "string", "enum": ["meets", "gap", "not_evaluable"]},
+          "evidence": {"type": "string"},
+          "evidence_capture_ids": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "severity", "screenshot_id", "region", "evidence", "recommendation"],
+        "properties": {
+          "id": {"type": "string"},
+          "severity": {"type": "string", "enum": ["critical", "high", "medium", "low", "info"]},
+          "screenshot_id": {"type": "string"},
+          "region": {"type": "string"},
+          "evidence": {"type": "string"},
+          "recommendation": {"type": "string"}
+        }
+      }
+    },
+    "limitations": {"type": "array", "items": {"type": "string"}}
+  }
+}

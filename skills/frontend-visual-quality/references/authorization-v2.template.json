@@ -1,0 +1,185 @@
+{
+  "schema_version": 2,
+  "authorization_id": "fill-in-task-approval-id",
+  "task_id": "fill-in-task-id",
+  "project": "fill-in-project",
+  "scope": "fill-in-routes-components-and-requested-operations",
+  "data_policy": "List permitted data, selected materials, and explicit exclusions.",
+  "allowed_capture_ids": ["result-home-desktop"],
+  "allowed_asset_ids": [],
+  "valid_until": "",
+  "max_estimated_cost_usd": 0.05,
+  "limits": {
+    "max_visual_cycles": 5,
+    "max_api_calls": 3,
+    "max_captures_or_pairs": 3,
+    "max_single_file_bytes": 8388608,
+    "max_aggregate_bytes": 25165824,
+    "max_image_width": 4096,
+    "max_image_height": 4096,
+    "max_aggregate_pixels": 48000000,
+    "timeout_seconds": 90,
+    "estimate_safety_factor": 1.25
+  },
+  "operations": {
+    "visual_review": {
+      "model": "",
+      "model_capabilities": {
+        "source_url": "https://developers.openai.com/api/docs/models/<exact-model-id>",
+        "verified_at": "",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"],
+        "structured_outputs": true,
+        "image_generation": false
+      },
+      "service_tier": "default",
+      "max_calls": 2,
+      "max_output_tokens": 2000,
+      "pricing": {
+        "model": "",
+        "verified_at": "",
+        "source_url": "https://developers.openai.com/api/docs/pricing",
+        "billing_regime": "standard",
+        "input_usd_per_million": 0,
+        "image_input_usd_per_million": 0,
+        "output_usd_per_million": 0,
+        "image_output_usd_per_million": 0,
+        "image_input_tokens_upper_bound_per_asset": 1,
+        "image_output_tokens_upper_bound": 1,
+        "image_detail": "high",
+        "image_bound_max_width": 4096,
+        "image_bound_max_height": 4096,
+        "image_bound_max_pixels": 16777216
+      }
+    },
+    "visual_reevaluation": {
+      "model": "",
+      "model_capabilities": {
+        "source_url": "https://developers.openai.com/api/docs/models/<exact-model-id>",
+        "verified_at": "",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"],
+        "structured_outputs": true,
+        "image_generation": false
+      },
+      "service_tier": "default",
+      "max_calls": 1,
+      "max_output_tokens": 2000,
+      "pricing": {
+        "model": "",
+        "verified_at": "",
+        "source_url": "https://developers.openai.com/api/docs/pricing",
+        "billing_regime": "standard",
+        "input_usd_per_million": 0,
+        "image_input_usd_per_million": 0,
+        "output_usd_per_million": 0,
+        "image_output_usd_per_million": 0,
+        "image_input_tokens_upper_bound_per_asset": 1,
+        "image_output_tokens_upper_bound": 1,
+        "image_detail": "high",
+        "image_bound_max_width": 4096,
+        "image_bound_max_height": 4096,
+        "image_bound_max_pixels": 16777216
+      }
+    },
+    "design_direction": {
+      "model": "",
+      "model_capabilities": {
+        "source_url": "https://developers.openai.com/api/docs/models/<exact-model-id>",
+        "verified_at": "",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "structured_outputs": true,
+        "image_generation": false
+      },
+      "service_tier": "default",
+      "max_calls": 1,
+      "max_output_tokens": 3000,
+      "pricing": {
+        "model": "",
+        "verified_at": "",
+        "source_url": "https://developers.openai.com/api/docs/pricing",
+        "billing_regime": "standard",
+        "input_usd_per_million": 0,
+        "image_input_usd_per_million": 0,
+        "output_usd_per_million": 0,
+        "image_output_usd_per_million": 0,
+        "image_input_tokens_upper_bound_per_asset": 1,
+        "image_output_tokens_upper_bound": 1,
+        "image_detail": "high",
+        "image_bound_max_width": 4096,
+        "image_bound_max_height": 4096,
+        "image_bound_max_pixels": 16777216
+      }
+    },
+    "ui_content": {
+      "model": "",
+      "model_capabilities": {
+        "source_url": "https://developers.openai.com/api/docs/models/<exact-model-id>",
+        "verified_at": "",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "structured_outputs": true,
+        "image_generation": false
+      },
+      "service_tier": "default",
+      "max_calls": 1,
+      "max_output_tokens": 2000,
+      "pricing": {
+        "model": "",
+        "verified_at": "",
+        "source_url": "https://developers.openai.com/api/docs/pricing",
+        "billing_regime": "standard",
+        "input_usd_per_million": 0,
+        "image_input_usd_per_million": 0,
+        "output_usd_per_million": 0,
+        "image_output_usd_per_million": 0,
+        "image_input_tokens_upper_bound_per_asset": 1,
+        "image_output_tokens_upper_bound": 1,
+        "image_detail": "high",
+        "image_bound_max_width": 4096,
+        "image_bound_max_height": 4096,
+        "image_bound_max_pixels": 16777216
+      }
+    },
+    "image_assets": {
+      "model": "",
+      "model_capabilities": {
+        "source_url": "https://developers.openai.com/api/docs/guides/image-generation",
+        "verified_at": "",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["image"],
+        "structured_outputs": false,
+        "image_generation": true
+      },
+      "service_tier": "standard",
+      "max_calls": 1,
+      "max_output_tokens": null,
+      "pricing": {
+        "model": "",
+        "verified_at": "",
+        "source_url": "https://developers.openai.com/api/docs/pricing",
+        "billing_regime": "standard",
+        "input_usd_per_million": 0,
+        "image_input_usd_per_million": 0,
+        "output_usd_per_million": 0,
+        "image_output_usd_per_million": 0,
+        "image_input_tokens_upper_bound_per_asset": 1,
+        "image_output_tokens_upper_bound": 1,
+        "image_detail": "high",
+        "image_bound_max_width": 4096,
+        "image_bound_max_height": 4096,
+        "image_bound_max_pixels": 16777216
+      },
+      "image_options": {
+        "sizes": ["1024x1024"],
+        "qualities": ["medium"],
+        "formats": ["png"],
+        "backgrounds": ["opaque"],
+        "max_input_assets": 3,
+        "max_output_bytes": 16777216
+      },
+      "identity_replacement_authorized": false
+    }
+  }
+}

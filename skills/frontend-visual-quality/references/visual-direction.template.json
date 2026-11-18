@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "objective": "",
+  "audience": "",
+  "priorities": [],
+  "composition": [],
+  "hierarchy": [],
+  "density": "",
+  "typography": [],
+  "colors_and_tokens": [],
+  "components": [],
+  "imagery": [],
+  "content_guidance": [],
+  "accessibility": [],
+  "states": [],
+  "platform_adaptations": [],
+  "criteria": [],
+  "identity_notes": [],
+  "media_kit_sources": [],
+  "limitations": [],
+  "decision": {
+    "status": "proposed",
+    "actor": "",
+    "reason": "",
+    "approved_by_user": false
+  }
+}

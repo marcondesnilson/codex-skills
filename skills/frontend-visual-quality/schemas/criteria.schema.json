@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["criteria"],
+  "properties": {
+    "criteria": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "description", "coverage"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1, "maxLength": 80},
+          "description": {"type": "string", "minLength": 1, "maxLength": 1000},
+          "coverage": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "screen", "region", "state", "platform", "required_capture_ids"],
+              "properties": {
+                "id": {"type": "string", "minLength": 1, "maxLength": 64},
+                "screen": {"type": "string", "minLength": 1},
+                "region": {"type": "string", "minLength": 1},
+                "state": {"type": "string", "minLength": 1},
+                "platform": {"type": "string", "enum": ["web", "desktop", "mobile", "tablet", "other"]},
+                "required_capture_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

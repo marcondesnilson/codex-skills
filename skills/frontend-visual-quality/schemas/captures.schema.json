@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["captures"],
+  "properties": {
+    "captures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "role", "path", "route", "viewport", "theme", "state", "content_id", "capture_tool", "user_selected_target", "platform", "environment", "device_or_window", "scale_factor", "build_fingerprint"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "role": {"type": "string", "enum": ["reference", "result"]},
+          "pair_id": {"type": "string"},
+          "path": {"type": "string", "minLength": 1},
+          "route": {"type": "string", "minLength": 1},
+          "viewport": {"type": "string", "pattern": "^[1-9][0-9]{1,4}x[1-9][0-9]{1,4}$"},
+          "theme": {"type": "string", "minLength": 1},
+          "state": {"type": "string", "minLength": 1},
+          "content_id": {"type": "string", "minLength": 1},
+          "capture_tool": {"type": "string", "minLength": 1},
+          "platform": {"type": "string", "enum": ["web", "desktop", "mobile", "tablet", "other"]},
+          "environment": {"type": "string", "minLength": 1},
+          "device_or_window": {"type": "string", "minLength": 1},
+          "scale_factor": {"type": "number", "exclusiveMinimum": 0, "maximum": 8},
+          "build_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "user_selected_target": {"type": "boolean"},
+          "reference_target": {"type": "string"}
+        }
+      }
+    }
+  }
+}

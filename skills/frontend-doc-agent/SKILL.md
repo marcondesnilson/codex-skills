@@ -39,7 +39,7 @@ combiná-la com estes padrões: mobile usa semântica e acessibilidade nativas, 
 - Manter separacao entre apresentacao, estado e acesso a API
 - Reutilizar componentes e tokens existentes antes de criar novos
 - Quando o projeto usar Tailwind, usar uma única instalação/configuração base; separar apenas os tokens de cor para temas light e dark. Não adotar Tailwind onde a stack já usa outra solução
-- Em frontend novo, oferecer temas light e dark. Em projeto existente, respeitar e completar ambos os temas somente nos componentes e fluxos visuais tocados, sem iniciar migração global fora do pedido
+- Em frontend novo, oferecer temas light e dark. Em projeto existente, preservar os temas que o produto já oferece; um projeto existente com tema único não precisa receber tema escuro apenas para cumprir esta regra genérica
 
 # I18N
 
@@ -147,12 +147,24 @@ Se a mudança afetar comportamento, configuração, contratos, decisões de UI o
 - registrar decisoes de UI relevantes para o time
 
 
+## QA de produto e aceite visual
+
+`frontend-doc-agent` implementa componentes, estados, conteúdo, contratos e testes no escopo tocado. Em uma invocação
+real de `$qa-projects` que altere apresentação ou interação, colaborar com `frontend-visual-quality` para a direção,
+capturas e achados consultivos e com `qa-projects` para execução real, regressão, classificação e evidência de aceite.
+Não transformar leitura ou edição destas skills em QA de produto.
+
+O plano da tarefa deve decidir `frontend-impact` separadamente de `api-execution-authorized`. Impacto visual torna a
+revisão externa um requisito de aceite; a ausência de serviço/autorização/evidência é `BLOCKED`, salvo uma falha
+confirmada que determine `FAIL`. Uma tarefa somente backend prossegue sem configuração visual. A aprovação deve citar a
+versão/build efetivamente servida e os arquivos de evidência atuais; commit e deploy continuam fora deste fluxo.
+
 # RECONSTRUÇÃO VISUAL AUTORIZADA E PORTABILIDADE
 
 - Aplicar estas regras a qualquer stack de frontend, web ou nativa; identificar ferramentas e convenções reais antes de executar.
 - Distinguir manutenção pontual de redesign completo. Quando o pedido autorizar reconstrução completa, é permitido substituir toda a apresentação **dentro das telas e fluxos solicitados**, preservando regras de negócio, permissões, navegação, contratos e comportamento.
 - A interface anterior é referência funcional; o design aprovado é referência visual. Não conservar markup ou CSS inadequados apenas por existirem.
-- Consultar `frontend-visual-quality` em criação, redesign, migração ou refinamento visual quando instalada e declarada no AGENTS aplicável. A skill especializada conduz comparação e refinamento; esta mantém os contratos de implementação.
+- Consultar `frontend-visual-quality` em criação, redesign, migração ou refinamento visual quando explicitamente solicitada/invocada, ou quando disponível e declarada no AGENTS aplicável. A skill especializada conduz comparação e refinamento; esta mantém os contratos de implementação.
 - Antes de alterar componente compartilhado, identificar consumidores diretamente afetados e testar compatibilidade. Não alterar aparência de outros consumidores por acidente.
 - Em motores configuráveis (JSON/API/banco), preservar o esquema, renderizador, personalização, isolamento por tenant, cache e versionamento existentes. Adicionar variantes compatíveis quando uma alteração quebraria configurações já publicadas; nunca fixar uma variante a domínio específico.
 - Não transformar configuração multi-tenant em requisito para projetos que não a utilizam.

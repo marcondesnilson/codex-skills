@@ -1,0 +1,44 @@
+{
+  "authorization_id": "fill-in-task-approval-id",
+  "task_id": "fill-in-task-id",
+  "project": "fill-in-project",
+  "scope": "fill-in-routes-components-and-requested-visual-change",
+  "data_policy": "List approved data classes and explicitly exclude customer/production/session data unless separately approved.",
+  "allowed_capture_ids": ["result-home-desktop"],
+  "model": "",
+  "model_capabilities": {
+    "source_url": "https://developers.openai.com/api/docs/models/<exact-model-id>",
+    "verified_at": "",
+    "vision_input": true,
+    "structured_outputs": true
+  },
+  "valid_until": "",
+  "max_estimated_cost_usd": 0.05,
+  "max_output_tokens": 2000,
+  "limits": {
+    "max_visual_cycles": 5,
+    "max_api_calls": 3,
+    "max_captures_or_pairs": 3,
+    "max_single_file_bytes": 8388608,
+    "max_aggregate_bytes": 25165824,
+    "max_image_width": 4096,
+    "max_image_height": 4096,
+    "max_aggregate_pixels": 48000000,
+    "timeout_seconds": 90,
+    "estimate_safety_factor": 1.25
+  },
+  "pricing": {
+    "model": "",
+    "verified_at": "",
+    "source_url": "https://developers.openai.com/api/docs/pricing",
+    "input_usd_per_million": 0,
+    "image_input_usd_per_million": 0,
+    "output_usd_per_million": 0,
+    "image_detail": "high",
+    "image_tokens_upper_bound_per_capture": 0,
+    "image_bound_max_width": 4096,
+    "image_bound_max_height": 4096,
+    "image_bound_max_pixels": 16777216,
+    "image_bound_source_url": "https://developers.openai.com/api/docs/guides/image-cost-calculator"
+  }
+}

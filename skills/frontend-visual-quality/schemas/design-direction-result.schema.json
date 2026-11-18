@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["proposal_status", "objective", "audience", "priorities", "composition", "hierarchy", "density", "typography", "colors_and_tokens", "components", "imagery", "content_guidance", "accessibility", "states", "platform_adaptations", "criteria", "identity_notes", "basis", "limitations"],
+  "properties": {
+    "proposal_status": {"type": "string", "enum": ["proposal"]},
+    "objective": {"type": "string"},
+    "audience": {"type": "string"},
+    "priorities": {"type": "array", "items": {"type": "string"}},
+    "composition": {"type": "array", "items": {"type": "string"}},
+    "hierarchy": {"type": "array", "items": {"type": "string"}},
+    "density": {"type": "string"},
+    "typography": {"type": "array", "items": {"type": "string"}},
+    "colors_and_tokens": {"type": "array", "items": {"type": "string"}},
+    "components": {"type": "array", "items": {"type": "string"}},
+    "imagery": {"type": "array", "items": {"type": "string"}},
+    "content_guidance": {"type": "array", "items": {"type": "string"}},
+    "accessibility": {"type": "array", "items": {"type": "string"}},
+    "states": {"type": "array", "items": {"type": "string"}},
+    "platform_adaptations": {"type": "array", "items": {"type": "string"}},
+    "criteria": {"type": "array", "items": {"type": "string"}},
+    "identity_notes": {"type": "array", "items": {"type": "string"}},
+    "basis": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["source_id", "source_type"], "properties": {"source_id": {"type": "string"}, "source_type": {"type": "string", "enum": ["brief", "brand_guide", "logo_variant", "palette", "typography", "asset", "icon", "example", "previous_decision"]}}}},
+    "limitations": {"type": "array", "items": {"type": "string"}}
+  }
+}

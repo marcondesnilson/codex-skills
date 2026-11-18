@@ -22,6 +22,10 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def is_python_cache(path):
+    return "__pycache__" in path.parts or path.suffix.lower() in {".pyc", ".pyo"}
+
+
 def load_state(path):
     if not path.exists():
         return {"files": {}}
@@ -65,6 +69,8 @@ def main():
                 if not origin.is_file() or origin.is_symlink() or ".git" in origin.parts:
                     continue
                 relative = origin.relative_to(skills)
+                if is_python_cache(relative):
+                    continue
                 key = relative.as_posix()
                 target = dest / relative
                 if any(p.is_symlink() for p in target.parents if p != dest and dest in p.parents):

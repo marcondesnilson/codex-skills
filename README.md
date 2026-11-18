@@ -7,13 +7,15 @@ Repositório público de skills reutilizáveis para projetos com Codex.
 - global-doc-agent
 - laravel-doc-agent
 - frontend-doc-agent
-- frontend-visual-quality (opcional, para auditoria e refinamento visual)
+- frontend-visual-quality (criação, redesign, refinamento e inspeção visual real)
+- qa-projects (QA funcional, visual, UX e regressão com current/isolated)
 - commit-projects
 
 ## Uso obrigatório no projeto
 
-Instalar a skill não garante que ela será aplicada em todas as tarefas. Para torná-la obrigatória no projeto,
-cite-a no `AGENTS.md` que governa os arquivos envolvidos. Use um bootstrap explícito:
+Instalar/copiar uma skill não garante que ela será selecionada ou aplicada. O `AGENTS.md` pode instruir o Codex a usar
+uma skill disponível; ele não instala nem registra skills. Para tornar seu uso uma instrução do projeto, cite-a no
+`AGENTS.md` que governa os arquivos envolvidos. Use um bootstrap explícito:
 
 ```md
 # Skills obrigatórias
@@ -21,7 +23,7 @@ cite-a no `AGENTS.md` que governa os arquivos envolvidos. Use um bootstrap expl�
 - Sempre use `global-doc-agent` antes de alterar este projeto.
 - Use também `laravel-doc-agent` em qualquer tarefa que toque código, configuração, testes ou documentação Laravel.
 - Use também `frontend-doc-agent` em qualquer tarefa que toque frontend, interface ou experiência visual.
-- Use `frontend-visual-quality` quando a tarefa envolver criação, redesign ou refinamento visual e a skill estiver instalada; não a exigir para correções puramente funcionais.
+- Use `frontend-visual-quality` em tarefas de criação, redesign ou refinamento visual quando disponível; não a exigir para correções puramente funcionais ou sem mudança de interface.
 - As instruções dessas skills são obrigatórias dentro do escopo em que forem citadas.
 - Em código existente, aplique-as somente ao fluxo e aos arquivos tocados e às dependências diretas necessárias.
 - Não audite, procure problemas, refatore ou corrija áreas não relacionadas; a adequação do legado deve ser gradual.
@@ -92,7 +94,15 @@ skills/
 │       ├── security-baseline.md
 │       └── tracking-and-audit.md
 ├── frontend-doc-agent/SKILL.md
-├── frontend-visual-quality/SKILL.md
+├── frontend-visual-quality/
+│   ├── SKILL.md
+│   ├── references/
+│   ├── schemas/
+│   └── scripts/
+├── qa-projects/
+│   ├── SKILL.md
+│   └── agents/
+│       └── openai.yaml
 ├── laravel-doc-agent/
 │   ├── SKILL.md
 │   └── references/sse.md
@@ -122,13 +132,24 @@ seu padrão local, incluindo MOCs, frontmatter e backlinks quando adotados.
 Para preparar um pacote a partir deste checkout, sem instalar ou sobrescrever configurações:
 
 ```sh
-tar -czf /tmp/codex-skills-2.0.0.tar.gz skills
+tar -czf /tmp/codex-skills-2.1.0.tar.gz skills
 ```
 
 Esse comando empacota o checkout presente, inclusive alterações ainda não publicadas; o nome não comprova release.
-Para instalar, usar um mecanismo disponível no ambiente que aceite a pasta completa ou copiar a pasta da skill para
-o diretório de skills configurado nesse ambiente. Comparar destino existente antes de atualizar para preservar
-customizações locais. Conferir que `references/` foi transferido e que os links locais resolvem.
+Os caminhos documentados atualmente para Codex são `.agents/skills/` no projeto e `~/.agents/skills/` no escopo
+do usuário; instalações existentes também podem usar um `CODEX_HOME` ou catálogo legado/customizado. Confirme o caminho
+reconhecido pelo runtime que executará a skill. Mantenha `--destination` explícito, compare o destino existente e
+preserve customizações locais. Depois de copiar a pasta completa, confirme que a sessão/catálogo reconheceu a skill;
+abra uma sessão nova se necessário. Nem a cópia garante seleção automática, nem citar o nome no `AGENTS.md` a instala.
+
+Para sincronizar apenas em um diretório temporário durante o desenvolvimento desta branch:
+
+```sh
+python3 scripts/sync-skills.py --source "$PWD" --destination /tmp/codex-skills-check --apply
+```
+
+Use o checkout local em `--source` para testar mudanças ainda não publicadas. Não clone `main` para validar alterações
+que só existem neste checkout. O sincronizador preserva arquivos divergentes e não remove instalações antigas.
 
 Os exemplos antigos de download raw de um único `SKILL.md` foram retirados: já omitiam `references/sse.md` e agora
 omitiriam as políticas modulares do Global. Não assumir que um comando de chat ou instalador transfere referências;
@@ -154,28 +175,39 @@ Não há migration de banco neste repositório documental.
 A [revisão estrutural e cenários A–J](docs/governance-review.md) registra preservações, conflitos resolvidos e limites da
 validação. As referências são normativas; o relatório é evidência desta revisão, não um segundo conjunto de regras.
 
-## Auditoria visual opcional
+## Incremento local 2.1.0
 
-A skill [`frontend-visual-quality`](skills/frontend-visual-quality/SKILL.md) complementa `frontend-doc-agent` em tarefas de criação, redesign e refinamento visual. Ela define diagnóstico, critérios de aceitação e inspeção de renderização real, sem impor React, Vue, Tailwind ou uma biblioteca nova. Aplique-a ao escopo da tarefa, não ao sistema inteiro.
+Este incremento MINOR adiciona QA funcional/visual com modos `current` e `isolated`, evidência ligada ao build servido,
+um gate de aceite visual e operações opcionais para direção, conteúdo e imagens. As chamadas à Responses API usam
+`store=false`; chamadas às Images API enviam os campos suportados pelo endpoint. A distribuição também passa a excluir
+caches Python do sincronizador. Esta classificação descreve o diff local sobre `2.0.0`; não declara publicação ou release.
 
-Stitch via MCP e Impeccable são **opcionais**: só devem ser utilizados quando disponíveis e relevantes. Playwright (ou navegador equivalente) pode produzir evidências de screenshots e estados reais, mas sua ausência deve ser informada, sem simular validação. Instalar a skill não a torna obrigatória automaticamente; declare seu uso no `AGENTS.md` aplicável quando desejar adotá-la.
+## Qualidade visual de frontend
+
+A skill [`frontend-visual-quality`](skills/frontend-visual-quality/SKILL.md) complementa `frontend-doc-agent` em tarefas de criação, redesign e refinamento visual quando invocada ou selecionada para esse escopo. Correções somente funcionais e tarefas sem mudança de interface não exigem auditoria visual completa. A pasta distribuível contém instruções, referências, schemas e um CLI opcional para revisão pela Responses API; chamadas reais exigem autorização por tarefa e permissão separada de execução. O navegador/MCP captura e inspeciona a aplicação real; a skill orienta o Codex, que avalia achados e implementa correções confirmadas.
+
+Chrome DevTools MCP ou outra ferramenta de navegador adequada pode inspecionar e capturar a renderização real. Nenhuma ferramenta é presumida disponível e nenhuma ausência deve ser coberta por screenshots fictícios. Em uma execução de `$qa-projects` que afete apresentação ou interação, a revisão visual externa é requisito de aceite: sem autorização ou evidência, o resultado é `BLOCKED` salvo falha confirmada (`FAIL`). Chamadas à Responses API enviam somente entradas explicitamente selecionadas, usam `store=false` e exigem autorização e configuração de custo por tarefa; operações da Images API também exigem autorização e enviam apenas campos suportados pelo endpoint. O helper offline não comprova chamada real à API nem qualidade visual de aplicação.
+
+A integração de responsabilidades, fingerprints de build, evidência de aceite e limites está em
+[Frontend design QA](docs/frontend-design-qa-integration.md). A skill `qa-projects` preserva a escolha de ambiente em
+cada execução (`current`/`isolated`) e não roda somente por ser lida ou editada.
 
 
 ## Fluxo autônomo de implementação visual (qualquer frontend)
 
-Para ativar em um projeto consumidor, instale as **pastas completas** das skills e declare no `AGENTS.md` aplicável:
+Para instruir um projeto consumidor, disponibilize as **pastas completas** das skills e declare no `AGENTS.md` aplicável:
 
 ```md
 - Use `global-doc-agent` nas tarefas deste projeto.
 - Use `frontend-doc-agent` sempre que tocar interface web ou nativa.
-- Use `frontend-visual-quality` em criação, redesign, migração e refinamento visual, quando instalada.
+- Use `frontend-visual-quality` em criação, redesign ou refinamento visual quando disponível; não a exija para tarefas somente funcionais.
 - Em redesign autorizado, permita reconstruir a camada visual do escopo solicitado; preserve comportamento e contratos.
 - Valide a renderização real e as interações com as ferramentas disponíveis; informe limitações sem inventar evidências.
 ```
 
 O ciclo de fidelidade visual está centralizado nas skills e funciona com Vue, Nuxt, React, Next.js, Blade, Flutter ou outra stack compatível. Stitch/MCP, Impeccable e Playwright são integrações condicionais, não pré-requisitos universais. Em sistemas configuráveis ou multi-tenant, preserve contratos e consumidores existentes; não associe layouts fixos a domínios.
 
-Atualizar este repositório **não atualiza automaticamente** skills já instaladas em outros projetos. Atualize as pastas completas no ambiente consumidor e mantenha o bootstrap no `AGENTS.md` pertinente.
+Um `AGENTS.md` orienta o Codex, mas não registra nem instala uma skill. Atualizar este repositório **não atualiza automaticamente** cópias em outros ambientes. Copie/sincronize a pasta completa para um caminho reconhecido, confirme sua descoberta e mantenha o bootstrap no `AGENTS.md` pertinente.
 
 ## Sincronização centralizada
 
