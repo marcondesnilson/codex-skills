@@ -21,11 +21,11 @@ import api_transport  # noqa: E402
 from api_transport import ApiResponse  # noqa: E402
 
 
-def png_bytes():
+def png_bytes(size=2):
     def chunk(kind, data):
         return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
-    header = struct.pack(">IIBBBBB", 2, 2, 8, 2, 0, 0, 0)
-    raw = b"".join(b"\x00\x20\x30\x40\x20\x30\x40" for _ in range(2))
+    header = struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0)
+    raw = b"".join(b"\x00" + b"\x20\x30\x40" * size for _ in range(size))
     return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
 
 
@@ -234,7 +234,7 @@ class DesignOperationTests(unittest.TestCase):
                 "verified_at": date.today().isoformat(), "input_modalities": ["text", "image"],
                 "output_modalities": ["image"], "structured_outputs": False, "image_generation": True,
             },
-            "service_tier": "standard", "max_calls": 1, "max_output_tokens": None,
+            "service_tier": "standard", "max_calls": 2, "max_output_tokens": None,
             "pricing": base["pricing"],
             "image_options": {
                 "sizes": ["1024x1024"], "qualities": ["medium"], "formats": ["png"],
@@ -257,7 +257,7 @@ class DesignOperationTests(unittest.TestCase):
         calls = []
         response = {
             "created": 1794945600,
-            "data": [{"b64_json": base64.b64encode(png_bytes()).decode("ascii")}],
+            "data": [{"b64_json": base64.b64encode(png_bytes(1024)).decode("ascii")}],
             "usage": {"input_tokens": 5, "output_tokens": 10, "total_tokens": 15},
         }
         def transport(endpoint, payload, api_key, timeout, limit):
@@ -270,6 +270,16 @@ class DesignOperationTests(unittest.TestCase):
                 background="opaque", transport=transport,
             )
         self.assertTrue(result["api_called"])
+        arguments = dict(action="generate", prompt="Abstract geometric placeholder without a logo.",
+                         size="1024x1024", quality="medium", output_format="png", background="opaque",
+                         transport=transport)
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "fixture-marker-only"}):
+            with self.assertRaisesRegex(review.ReviewError, "Identical payload"):
+                operations.run_image_assets(task, purpose="Changed purpose only", **arguments)
+            operations.run_image_assets(task, purpose="Intentional variant",
+                                        variant_reason="Compare a second generated composition.", **arguments)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0]["payload"], calls[1]["payload"])
         self.assertEqual(calls[0]["endpoint"], "/v1/images/generations")
         self.assertEqual(calls[0]["payload"]["n"], 1)
         self.assertEqual(result["request_id"], "req-image-fixture")
@@ -296,6 +306,22 @@ class DesignOperationTests(unittest.TestCase):
             task_id, "synthetic project", "copy request", self.root / f"{task_id}-tasks", auth_path,
             plan_path, api_execution_authorized=api_execution, project_root=self.project,
         )
+
+    def test_authorized_factor_blocks_budget_between_old_and_correct_estimates(self):
+        task = self.init_v2_task("factor-fixture", api_execution=True)
+        request = self.write_content_request("factor.json")
+        stored = task / "authorization.json"
+        auth = json.loads(stored.read_text())
+        auth["limits"]["estimate_safety_factor"] = 2
+        review.write_json(stored, auth)
+        dry = operations.run_ui_content(task, request, dry_run=True)
+        self.assertEqual(dry["estimate"]["safety_factor"], 2)
+        auth["max_estimated_cost_usd"] = dry["estimate"]["estimated_cost_usd"] * 0.8
+        review.write_json(stored, auth)
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "fixture-marker-only"}):
+            with self.assertRaisesRegex(review.ReviewError, "remaining task budget"):
+                operations.run_ui_content(task, request, transport=lambda *_: self.fail("Transport was called"))
+        self.assertEqual(review.read_task(task)[1]["calls_attempted"], 0)
 
     def test_shared_accounting_keeps_reserve_and_settlement_from_double_counting(self):
         state = {"attempts": [{

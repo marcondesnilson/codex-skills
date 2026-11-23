@@ -29,3 +29,26 @@ The visual reference template is [visual-direction.template.json](visual-directi
 use the `design-direction` CLI command and inspect the returned proposal before recording a task decision. A synthetic
 configuration can build and estimate an offline payload, but is accepted only with `--dry-run`; it cannot authorize a
 live request.
+
+The discovery order at the authorized project root is `Media Kit`, `MediaKit`, `MEDIAKIT`,
+`media-kit`, and `media_kit`. An explicit project-relative or absolute local path confined to
+that root can override discovery. Inspect only relevant guides, logo variants, palettes, fonts,
+images, icons and examples. Record source/version or hash, license or reuse limits, and
+unreadable formats in the selected brand context. Use the existing project tokens and UI conventions
+if the kit is absent. Discovery takes place locally. Transmission is limited to files and context
+explicitly selected for the operation.
+
+The helper stores project direction history beside private task evidence. Reuse requires the same
+evidence root, canonical project path and project label. New tasks pin the latest adoption; another
+project receives its own history. Read the adopted record, validate its sources against actual
+documentation/tokens, and use the scope-specific brief for the current task. Content hash,
+proposal hash and decision hash have separate purposes.
+
+Use `locate-media-kit --task-dir <task-dir>` to perform the bounded lookup, or add `--path <directory>`
+for an explicit override. Select and classify source material before preparing any operation.
+
+A change of approval, actor or sources can produce a separate project decision with
+the same visual content. The latest decision is inherited on task initialization.
+An exact retry of the recorded decision is idempotent. A task pinned to a previous
+decision must reload before it can publish another decision. Visual acceptance
+depends on the content hash and remains current when only the authority changes.

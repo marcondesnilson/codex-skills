@@ -105,6 +105,10 @@ def attempt_budget_cost(attempt: dict) -> Decimal:
         return Decimal(0)
     reserve = decimal_value(attempt.get("reserved_cost_usd", attempt.get("estimated_cost_usd", 0)), "reservation")
     consumption = attempt.get("consumption_status")
+    if consumption == "reconciled_charged":
+        return decimal_value(attempt["reported_cost_usd"], "reconciled billing")
+    if attempt.get("conservative_cost_usd") is not None:
+        return max(reserve, decimal_value(attempt["conservative_cost_usd"]))
     if consumption in {"indeterminate", "indeterminate_until_response", "not_reported"} or attempt.get("status") == "in_flight":
         return reserve
     observed = []
@@ -122,3 +126,32 @@ def attempt_budget_cost(attempt: dict) -> Decimal:
 def committed_budget_usd(state: dict) -> float:
     total = sum((attempt_budget_cost(attempt) for attempt in state.get("attempts", [])), Decimal(0))
     return cost_number(total)
+
+
+def model_matches(config: dict, returned: str | None) -> bool:
+    """Accept only the requested model or explicitly equivalent priced snapshots."""
+    return returned == config["model"] or returned in config.get("model_capabilities", {}).get("equivalent_models", [])
+
+
+def record_usage_cost(attempt: dict, usage: dict | None) -> None:
+    if usage is None or attempt["consumption_status"] == "indeterminate":
+        return
+    pricing = attempt["pricing_snapshot"]
+    missing = []
+    conservative = dict(pricing)
+    for side, prefix in (("input", "fallback_image_input_tokens"), ("output", "fallback_image_output_tokens")):
+        detail = usage.get(f"{side}_image_tokens")
+        if ((detail is None and attempt.get(prefix, 0))
+                or (detail is not None and detail > usage[f"{side}_tokens"])):
+            missing.append(side)
+            rate = f"{side}_usd_per_million"
+            conservative[rate] = max(decimal_value(pricing[rate]), decimal_value(pricing.get(f"image_{rate}", pricing[rate])))
+    if missing:
+        totals = {f"{side}_tokens": usage[f"{side}_tokens"] for side in ("input", "output")}
+        for side in ("input", "output"):
+            if side not in missing:
+                totals[f"{side}_image_tokens"] = usage.get(f"{side}_image_tokens")
+        attempt["conservative_cost_usd"] = calculate_usage_cost(totals, conservative)
+        attempt["cost_assumptions"] = [f"All reported {side} tokens priced at the higher modality rate" for side in missing]
+    else:
+        attempt["cost_calculated_from_reported_usage_usd"] = calculate_usage_cost(usage, pricing)

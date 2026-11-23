@@ -19,7 +19,7 @@ from api_transport import (
     ApiResponse,
     send_json_request,
 )
-from cost_accounting import calculate_usage_cost, committed_budget_usd, decimal_value, estimate_cost_from_rates
+from cost_accounting import committed_budget_usd, decimal_value, estimate_cost_from_rates, model_matches, record_usage_cost
 from visual_review import (
     HARD_LIMITS,
     MAX_API_RESPONSE_BYTES,
@@ -28,6 +28,9 @@ from visual_review import (
     append_jsonl,
     atomic_write,
     canonical_json,
+    decode_capture,
+    decode_image,
+    image_decoder,
     exclusive_task_lock,
     extract_structured_text,
     extract_usage,
@@ -86,10 +89,10 @@ def _selected_assets(path: Path | None, auth: dict | None, maximum: int, allowed
     if not isinstance(manifest, dict) or set(manifest) != {"assets"} or not isinstance(manifest["assets"], list):
         raise ReviewError("Selected asset manifest must contain only an assets array.")
     items = manifest["assets"]
-    if len(items) > maximum:
+    if len(items) > min(maximum, auth["limits"]["max_captures_or_pairs"] if auth else HARD_LIMITS["max_captures_or_pairs"]):
         raise ReviewError("Selected asset count exceeds the authorized operation limit.")
     allowed = set(auth.get("allowed_asset_ids", [])) if auth else set()
-    limits = dict(HARD_LIMITS)
+    limits = auth["limits"] if auth else HARD_LIMITS
     pricing = {
         "image_bound_max_width": 4096,
         "image_bound_max_height": 4096,
@@ -114,9 +117,19 @@ def _selected_assets(path: Path | None, auth: dict | None, maximum: int, allowed
             raise ReviewError(f"Selected asset {identifier} is outside this task's explicit authorization.")
         seen.add(identifier)
         asset_path = _workspace_file(Path(item["path"]), allowed_root, f"asset {identifier}")
-        image = read_capture(str(asset_path), limits, pricing)
+        image = read_capture(str(asset_path), limits, pricing, decode=False)
         normalized.append({"id": identifier, "kind": item["kind"], **image})
+    _validate_asset_totals(normalized, limits)
+    for asset in normalized:
+        decode_capture(asset)
     return normalized
+
+
+def _validate_asset_totals(assets: list[dict], limits: dict) -> None:
+    if sum(item["size_bytes"] for item in assets) > limits["max_aggregate_bytes"]:
+        raise ReviewError("Aggregate asset bytes exceed the authorized limit.")
+    if sum(item["width"] * item["height"] for item in assets) > limits["max_aggregate_pixels"]:
+        raise ReviewError("Aggregate asset pixels exceed the authorized limit.")
 
 
 def _asset_metadata(asset: dict) -> dict:
@@ -132,9 +145,9 @@ def _asset_metadata(asset: dict) -> dict:
     }
 
 
-def _image_message(asset: dict) -> dict:
+def _image_message(asset: dict, detail: str) -> dict:
     data_url = f"data:{asset['mime']};base64,{base64.b64encode(asset['bytes']).decode('ascii')}"
-    return {"type": "input_image", "image_url": data_url, "detail": "high"}
+    return {"type": "input_image", "image_url": data_url, "detail": detail}
 
 
 def _direction_input(
@@ -213,7 +226,7 @@ def _operation_context(task_dir: Path, manifest: dict, input_data: dict, auth: d
         selected["source_manifest"].append({
             "source_id": "previous-decision",
             "source_type": "previous_decision",
-            "sha256": selected["adopted_visual_direction"].get("result_sha256"),
+            "sha256": _sha256(canonical_json(selected["adopted_visual_direction"]["content"])),
             "authority_class": "adopted_task_direction",
         })
     selected["prior_visual_findings"] = input_data.get("prior_visual_findings", [])
@@ -241,7 +254,7 @@ def _responses_payload(operation: str, context: dict, assets: list[dict], config
     user_content = [{"type": "input_text", "text": json.dumps(context, ensure_ascii=False, indent=2)}]
     for asset in assets:
         user_content.append({"type": "input_text", "text": f"Selected brand/reference asset {asset['id']} ({asset['kind']}); inspect only this supplied file."})
-        user_content.append(_image_message(asset))
+        user_content.append(_image_message(asset, config["pricing"].get("image_detail", "high")))
     return {
         "model": config["model"],
         "store": False,
@@ -290,7 +303,7 @@ def _image_payload(input_data: dict, config: dict) -> tuple[str, dict, list[dict
 
 def _synthetic_config(value: object, operation: str) -> dict:
     keys = {"synthetic", "operation", "model", "service_tier", "max_output_tokens", "pricing", "allowed_asset_ids", "image_options", "identity_replacement_authorized"}
-    if not isinstance(value, dict) or set(value) != keys or value.get("synthetic") is not True or value.get("operation") != operation:
+    if not isinstance(value, dict) or not keys <= set(value) <= keys | {"estimate_safety_factor"} or value.get("synthetic") is not True or value.get("operation") != operation:
         raise ReviewError("Offline configuration must be explicitly synthetic and scoped to this operation.")
     if not isinstance(value.get("model"), str) or not value["model"].startswith("offline-"):
         raise ReviewError("Synthetic configuration must use an offline-* model label.")
@@ -316,6 +329,10 @@ def _synthetic_config(value: object, operation: str) -> dict:
             raise ReviewError("Synthetic image configuration needs explicit output bounds.")
     config = {key: value[key] for key in ("model", "service_tier", "max_output_tokens", "pricing", "image_options", "identity_replacement_authorized")}
     config["synthetic"] = True
+    factor = decimal_value(value.get("estimate_safety_factor", 1.25))
+    if not 1 <= factor <= HARD_LIMITS["estimate_safety_factor"]:
+        raise ReviewError("Synthetic safety factor is outside its allowed bound.")
+    config["estimate_safety_factor"] = float(factor)
     return config
 
 
@@ -341,7 +358,7 @@ def _estimate(payload: dict, assets: list[dict], config: dict, image_operation: 
         image_input_tokens,
         config.get("max_output_tokens") or 0,
         config["pricing"],
-        config.get("estimate_safety_factor", 1.25),
+        config["estimate_safety_factor"],
         config["model"],
         config["service_tier"],
         image_output_tokens,
@@ -362,14 +379,7 @@ def _finish_attempt(task_dir: Path, state: dict, attempt: dict, status: str, con
     attempt["consumption_status"] = consumption
     attempt["usage_reported"] = usage
     attempt["finished_at"] = iso_now()
-    if usage is not None:
-        pricing = attempt["pricing_snapshot"]
-        attempt["cost_calculated_from_reported_usage_usd"] = calculate_usage_cost(
-            usage,
-            pricing,
-            attempt.get("fallback_image_input_tokens", 0),
-            attempt.get("fallback_image_output_tokens", 0),
-        )
+    record_usage_cost(attempt, usage)
     if consumption != "indeterminate":
         state["pending_call_id"] = None
     if operation_result is not None:
@@ -415,7 +425,7 @@ def run_operation(
     manifest, initial_state, stored_auth = read_task(task_dir)
     if synthetic_config is not None and not dry_run:
         raise ReviewError("Synthetic configuration can only be used in an explicitly offline dry-run.")
-    if stored_auth is None:
+    if synthetic_config is not None or stored_auth is None:
         if not dry_run:
             raise ReviewError("Live operations require explicit task-scoped API authorization.")
         config = _synthetic_config(synthetic_config, operation) if synthetic_config is not None else None
@@ -443,6 +453,22 @@ def run_operation(
         context = _operation_context(task_dir, manifest, input_data, auth)
         payload = _responses_payload(operation, context, input_data.get("assets", []), config, schema) if config is not None else None
         selected_assets = input_data.get("assets", [])
+    if auth is not None and selected_assets:
+        limits, pricing = auth["limits"], config["pricing"]
+        maximum = config.get("image_options", {}).get("max_input_assets", 3)
+        if len(selected_assets) > min(maximum, limits["max_captures_or_pairs"]):
+            raise ReviewError("Selected asset count exceeds authorized bounds.")
+        for asset in selected_assets:
+            if (asset["id"] not in auth["allowed_asset_ids"]
+                    or asset["size_bytes"] > limits["max_single_file_bytes"]
+                    or asset["width"] > min(limits["max_image_width"], pricing["image_bound_max_width"])
+                    or asset["height"] > min(limits["max_image_height"], pricing["image_bound_max_height"])
+                    or asset["width"] * asset["height"] > pricing["image_bound_max_pixels"]):
+                raise ReviewError("Selected asset is outside the current authorization.")
+            _workspace_file(asset["source"], manifest.get("project_root"), "asset")
+        _validate_asset_totals(selected_assets, limits)
+    if config and not config.get("synthetic") and selected_assets and operation != "image_assets" and "image" not in config["model_capabilities"]["input_modalities"]:
+        raise ReviewError("Selected model was not authorized for image input.")
     if config is not None and auth is None:
         allowed = set(synthetic_config["allowed_asset_ids"])
         if any(item["id"] not in allowed for item in selected_assets):
@@ -474,10 +500,13 @@ def run_operation(
         raise ReviewError("Live operations require task-scoped authorization.")
     if not manifest.get("api_execution_authorized"):
         raise ReviewError("Task has no separate authorization for API execution.")
+    if operation == "image_assets":
+        image_decoder()
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise ReviewError("Live operation needs OPENAI_API_KEY in the process environment.")
     config_for_compare = canonical_json(auth)
+    prepared_direction = manifest.get("adopted_visual_direction")
     build_fingerprint = initial_state.get("build_fingerprint")
     response_limit = MAX_IMAGE_RESPONSE_BYTES if operation == "image_assets" else MAX_API_RESPONSE_BYTES
     with exclusive_task_lock(task_dir):
@@ -493,9 +522,15 @@ def run_operation(
             raise ReviewError("Task API call limit has been reached.")
         if state.get("build_fingerprint") != build_fingerprint:
             raise ReviewError("Served build context changed during operation preparation; no API call was made.")
+        if manifest.get("adopted_visual_direction") != prepared_direction:
+            raise ReviewError("Adopted direction changed during request preflight.")
         prior = [item for item in state.get("attempts", []) if item.get("operation") == operation]
         if sum(1 for item in prior) >= config["max_calls"]:
             raise ReviewError(f"Task {operation} call limit has been reached.")
+        variant_reason = input_data.get("variant_reason")
+        duplicate = any(item.get("payload_sha256") == payload_fingerprint for item in prior)
+        if duplicate and not (operation == "image_assets" and variant_reason):
+            raise ReviewError("Identical payload already submitted for this operation.")
         if any(item.get("context_sha256") == context_fingerprint for item in prior):
             raise ReviewError("This operation context was already submitted; change relevant inputs before another call.")
         remaining = decimal_value(auth["max_estimated_cost_usd"]) - decimal_value(committed_budget_usd(state))
@@ -506,6 +541,7 @@ def run_operation(
             "call_id": call_id,
             "operation": operation,
             "action": input_data.get("action"),
+            "variant_reason": variant_reason,
             "endpoint": endpoint,
             "contract_version": CONTRACT_VERSION,
             "status": "in_flight",
@@ -573,6 +609,10 @@ def run_operation(
             "service_tier_returned": response.get("service_tier") if operation != "image_assets" else "standard",
             "response_created_at": response.get("created_at", response.get("created")),
         }
+        returned_model = metadata["model_returned"]
+        if (returned_model is not None or operation != "image_assets") and not model_matches(config, returned_model):
+            _finish_attempt(task_dir, state, attempt, "response_metadata_mismatch", "indeterminate", usage, metadata)
+            raise ReviewError("Returned model does not match the authorized pricing contract; reconcile before another call.")
         if not request_id:
             _finish_attempt(task_dir, state, attempt, "trace_id_missing", "reported_usage" if usage else "indeterminate", usage, metadata)
             raise ReviewError("API response omitted the request trace ID; no result was approved.")
@@ -605,6 +645,7 @@ def run_operation(
                     "proposal_id": call_id,
                     "status": "proposed_not_adopted",
                     "content": result,
+                    "sources": context["source_manifest"],
                     "input_context_sha256": context_fingerprint,
                     "result_sha256": _sha256(canonical_json(result)),
                     "created_at": iso_now(),
@@ -617,12 +658,6 @@ def run_operation(
         except ReviewError as error:
             _finish_attempt(task_dir, state, attempt, "invalid_image_response", "reported_usage" if usage else "indeterminate", usage, metadata)
             raise ReviewError("Image API output failed local validation and was not saved as an approved asset.") from error
-        if not usage:
-            _finish_attempt(task_dir, state, attempt, "usage_missing", "indeterminate", None, metadata)
-            raise ReviewError("Image API response omitted usage; no output was saved and consumption is indeterminate.")
-        if len(result) > config["image_options"]["max_output_bytes"]:
-            _finish_attempt(task_dir, state, attempt, "output_limit_exceeded", "reported_usage", usage, metadata)
-            raise ReviewError("Generated image exceeded the authorized local output-size limit.")
         output_path = task_dir / "assets" / "generated" / f"{call_id}.{output_format}"
         atomic_write(output_path, result)
         record = {
@@ -638,7 +673,7 @@ def run_operation(
             "output_format": output_format,
             "created_at": iso_now(),
         }
-        _finish_attempt(task_dir, state, attempt, "completed", "reported_usage", usage, metadata, record)
+        _finish_attempt(task_dir, state, attempt, "completed", "reported_usage" if usage else "indeterminate", usage, metadata, record)
         return {"operation": operation, "result": "generated_not_approved_for_use", "api_called": True, "call_id": call_id, "request_id": request_id, "output_file": str(output_path), "output_sha256": record["output_sha256"], "estimate": estimate, "usage_reported": usage}
 
 
@@ -648,7 +683,7 @@ def _validate_operation_result(operation: str, result: object, input_data: dict)
     if operation == "design_direction":
         expected_ids = set(input_data["source_ids"])
         for item in result["basis"]:
-            if item["source_id"] not in expected_ids:
+            if item["source_id"] not in expected_ids or input_data["source_ids"][item["source_id"]] != item["source_type"]:
                 raise ReviewError("Design direction cited a source that was not selected for this request.")
         identity_notes = [text.lower() for text in result["identity_notes"]]
         if input_data["identity_status"] == "missing":
@@ -675,12 +710,11 @@ def _image_result(response: dict, input_data: dict, config: dict) -> tuple[bytes
     except (ValueError, base64.binascii.Error) as error:
         raise ReviewError("Image API returned invalid base64 image data.") from error
     output_format = input_data["format"]
-    if output_format == "png" and not raw.startswith(b"\x89PNG\r\n\x1a\n"):
-        raise ReviewError("Image API output format does not match the authorized PNG format.")
-    if output_format == "jpeg" and not raw.startswith(b"\xff\xd8"):
-        raise ReviewError("Image API output format does not match the authorized JPEG format.")
-    if output_format == "webp" and not (raw.startswith(b"RIFF") and raw[8:12] == b"WEBP"):
-        raise ReviewError("Image API output format does not match the authorized WebP format.")
+    if len(raw) > config["image_options"]["max_output_bytes"]:
+        raise ReviewError("Generated image exceeded the authorized byte limit.")
+    expected = input_data["size"]
+    expected_size = tuple(map(int, expected.split("x"))) if expected != "auto" else None
+    decode_image(raw, output_format.upper(), max_size=(1536, 1536), expected_size=expected_size)
     return raw, output_format
 
 
@@ -739,6 +773,7 @@ def run_image_assets(
     dry_run: bool = False,
     synthetic_config: dict | None = None,
     transport=send_json_request,
+    variant_reason: str | None = None,
 ) -> dict:
     if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 32_000:
         raise ReviewError("Image prompt must be explicit and no longer than 32,000 characters.")
@@ -749,7 +784,10 @@ def run_image_assets(
     config = operation_authorization(validated, "image_assets") if validated else None
     maximum = config["image_options"]["max_input_assets"] if config else 3
     assets = _selected_assets(assets_path, validated, maximum, manifest.get("project_root"), "image_assets")
+    if variant_reason is not None and not 10 <= len(variant_reason.strip()) <= MAX_FIELD_CHARS:
+        raise ReviewError("An intentional variant needs an explicit reason.")
     data = {
+        "variant_reason": variant_reason.strip() if variant_reason else None,
         "action": action,
         "prompt": prompt.strip(),
         "purpose": purpose.strip(),
@@ -779,19 +817,34 @@ def adopt_direction(task_dir: Path, proposal_id: str, decision_file: Path) -> di
     if not isinstance(decision["change_note"], str) or not decision["change_note"].strip():
         raise ReviewError("Direction decisions need an explicit change note, including for the first version.")
     proposal_path = task_dir / "directions" / "proposals" / f"{proposal_id}.json"
-    proposal = read_json(proposal_path, 1024 * 1024)
-    if proposal.get("status") != "proposed_not_adopted":
-        raise ReviewError("Direction proposal was already decided or is not a proposal.")
     with exclusive_task_lock(task_dir):
+        proposal = read_json(proposal_path, 1024 * 1024)
+        if proposal["result_sha256"] != _sha256(canonical_json(proposal["content"])):
+            raise ReviewError("Direction proposal content changed.")
         manifest, state, _ = read_task(task_dir)
         previous = manifest.get("adopted_visual_direction")
         history = state.setdefault("visual_direction_history", [])
+        existing = next((entry for entry in history if entry["proposal_id"] == proposal_id), None)
+        if existing:
+            if any(existing.get(key) != decision[key].strip() for key in fields):
+                raise ReviewError("Direction proposal was already decided with different decision details.")
+            if proposal.get("status") == "proposed_not_adopted":
+                if existing["decision"] != "rejected":
+                    manifest["adopted_visual_direction"] = existing
+                    write_json(task_dir / "manifest.json", manifest)
+                _close_direction_proposal(proposal_path, proposal, existing)
+            return _direction_decision_result(existing)
+        if proposal.get("status") != "proposed_not_adopted":
+            raise ReviewError("Direction proposal was already decided.")
         version = len(history) + 1
         record = {
             "version": version,
+            "origin_task_id": manifest["task_id"],
             "proposal_id": proposal_id,
-            "proposal_sha256": proposal["result_sha256"],
+            "proposal_sha256": _sha256(canonical_json(proposal)),
+            "content_sha256": proposal["result_sha256"],
             "content": proposal["content"],
+            "sources": proposal.get("sources", []),
             "decision": decision["decision"],
             "actor": decision["actor"].strip(),
             "reason": decision["reason"].strip(),
@@ -800,12 +853,32 @@ def adopt_direction(task_dir: Path, proposal_id: str, decision_file: Path) -> di
             "previous_direction_sha256": _sha256(canonical_json(previous)) if previous else None,
             "decided_at": iso_now(),
         }
-        history.append(record)
-        if decision["decision"] != "rejected":
+        # The identity excludes the timestamp so an interrupted write can be
+        # retried against the already persisted registry entry.
+        record["decision_sha256"] = _sha256(canonical_json({
+            key: value for key, value in record.items() if key != "decided_at"
+        }))
+        if record["decision"] != "rejected":
+            from acceptance_gate import invalidate_acceptance
+            from project_identity import persist_direction
+            material_change = not previous or _sha256(canonical_json(previous["content"])) != record["content_sha256"]
+            def before_publish():
+                if material_change:
+                    invalidate_acceptance(task_dir, manifest, state, "Adopted visual direction changed.")
+            record = persist_direction(task_dir.parent, manifest, record, before_publish=before_publish)
             manifest["adopted_visual_direction"] = record
-        proposal["status"] = "rejected" if decision["decision"] == "rejected" else "adopted"
-        proposal["decision"] = record
-        write_json(proposal_path, proposal)
+        history.append(record)
         write_json(task_dir / "state.json", state)
         write_json(task_dir / "manifest.json", manifest)
-    return {"proposal_id": proposal_id, "decision": decision["decision"], "version": version, "approved_by_user": record["approved_by_user"]}
+        _close_direction_proposal(proposal_path, proposal, record)
+    return _direction_decision_result(record)
+
+
+def _close_direction_proposal(path: Path, proposal: dict, record: dict) -> None:
+    proposal["status"] = "rejected" if record["decision"] == "rejected" else "adopted"
+    proposal["decision"] = record
+    write_json(path, proposal)
+
+
+def _direction_decision_result(record: dict) -> dict:
+    return {key: record[key] for key in ("proposal_id", "decision", "version", "approved_by_user")}

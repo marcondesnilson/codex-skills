@@ -23,7 +23,7 @@ uma skill disponível; ele não instala nem registra skills. Para tornar seu uso
 - Sempre use `global-doc-agent` antes de alterar este projeto.
 - Use também `laravel-doc-agent` em qualquer tarefa que toque código, configuração, testes ou documentação Laravel.
 - Use também `frontend-doc-agent` em qualquer tarefa que toque frontend, interface ou experiência visual.
-- Use `frontend-visual-quality` em tarefas de criação, redesign ou refinamento visual quando disponível; não a exigir para correções puramente funcionais ou sem mudança de interface.
+- Use `frontend-visual-quality` quando a tarefa altera apresentação ou interação em web, desktop ou aplicativo. Backend sem impacto na interface, documentação e refatorações internas seguem o QA aplicável ao seu escopo.
 - As instruções dessas skills são obrigatórias dentro do escopo em que forem citadas.
 - Em código existente, aplique-as somente ao fluxo e aos arquivos tocados e às dependências diretas necessárias.
 - Não audite, procure problemas, refatore ou corrija áreas não relacionadas; a adequação do legado deve ser gradual.
@@ -184,9 +184,9 @@ caches Python do sincronizador. Esta classificação descreve o diff local sobre
 
 ## Qualidade visual de frontend
 
-A skill [`frontend-visual-quality`](skills/frontend-visual-quality/SKILL.md) complementa `frontend-doc-agent` em tarefas de criação, redesign e refinamento visual quando invocada ou selecionada para esse escopo. Correções somente funcionais e tarefas sem mudança de interface não exigem auditoria visual completa. A pasta distribuível contém instruções, referências, schemas e um CLI opcional para revisão pela Responses API; chamadas reais exigem autorização por tarefa e permissão separada de execução. O navegador/MCP captura e inspeciona a aplicação real; a skill orienta o Codex, que avalia achados e implementa correções confirmadas.
+A skill [`frontend-visual-quality`](skills/frontend-visual-quality/SKILL.md) complementa `frontend-doc-agent` quando houver impacto na apresentação ou interação. Correções somente funcionais e tarefas sem mudança de interface não exigem auditoria visual completa. A pasta distribuível contém instruções, referências, schemas e um CLI opcional para revisão pela Responses API; chamadas reais exigem autorização por tarefa e permissão separada de execução. O navegador/MCP captura e inspeciona a aplicação real; a skill orienta o Codex, que avalia achados e implementa correções confirmadas.
 
-Chrome DevTools MCP ou outra ferramenta de navegador adequada pode inspecionar e capturar a renderização real. Nenhuma ferramenta é presumida disponível e nenhuma ausência deve ser coberta por screenshots fictícios. Em uma execução de `$qa-projects` que afete apresentação ou interação, a revisão visual externa é requisito de aceite: sem autorização ou evidência, o resultado é `BLOCKED` salvo falha confirmada (`FAIL`). Chamadas à Responses API enviam somente entradas explicitamente selecionadas, usam `store=false` e exigem autorização e configuração de custo por tarefa; operações da Images API também exigem autorização e enviam apenas campos suportados pelo endpoint. O helper offline não comprova chamada real à API nem qualidade visual de aplicação.
+Chrome DevTools MCP ou outra ferramenta de navegador adequada pode inspecionar e capturar a renderização real. Nenhuma ferramenta é presumida disponível e nenhuma ausência deve ser coberta por screenshots fictícios. Quando uma tarefa afeta apresentação ou interação, a revisão visual externa é requisito de aceite: sem autorização ou evidência, o resultado é `BLOCKED` salvo falha confirmada (`FAIL`). Chamadas à Responses API enviam somente entradas explicitamente selecionadas, usam `store=false` e exigem autorização e configuração de custo por tarefa; operações da Images API também exigem autorização e enviam apenas campos suportados pelo endpoint. O helper offline não comprova chamada real à API nem qualidade visual de aplicação.
 
 A integração de responsabilidades, fingerprints de build, evidência de aceite e limites está em
 [Frontend design QA](docs/frontend-design-qa-integration.md). A skill `qa-projects` preserva a escolha de ambiente em
@@ -200,7 +200,7 @@ Para instruir um projeto consumidor, disponibilize as **pastas completas** das s
 ```md
 - Use `global-doc-agent` nas tarefas deste projeto.
 - Use `frontend-doc-agent` sempre que tocar interface web ou nativa.
-- Use `frontend-visual-quality` em criação, redesign ou refinamento visual quando disponível; não a exija para tarefas somente funcionais.
+- Use `frontend-visual-quality` para alterações de apresentação ou interação em qualquer plataforma.
 - Em redesign autorizado, permita reconstruir a camada visual do escopo solicitado; preserve comportamento e contratos.
 - Valide a renderização real e as interações com as ferramentas disponíveis; informe limitações sem inventar evidências.
 ```

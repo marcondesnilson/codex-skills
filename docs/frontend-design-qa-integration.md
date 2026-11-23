@@ -57,3 +57,20 @@ does not invent or silently replace brand rules.
 The distributed contracts live in [`frontend-visual-quality`](../skills/frontend-visual-quality/SKILL.md) and
 [`qa-projects`](../skills/qa-projects/SKILL.md). The integrated acceptance command details are in its
 [acceptance-gate reference](../skills/frontend-visual-quality/references/acceptance-gate.md).
+
+## Offline correction and compatibility
+
+- The trigger is a change in presentation or interaction in web, desktop or mobile. The required review
+  and the authorization to execute API calls are independent. Use the appropriate browser, native window,
+  emulator or device. See the [acceptance contract](../skills/frontend-visual-quality/references/acceptance-gate.md).
+- `review --dry-run --synthetic-config <file>` accepts the same local synthetic format as design operations,
+  with `operation` set to `visual_review` or `visual_reevaluation`. It validates the local payload and estimate
+  without creating a reservation, mutating evidence, or validating server acceptance.
+- When modality is undetermined, the ledger prices reported tokens at the higher applicable rate and retains
+  the greater of that estimate and the initial reservation. Final billing reconciliation replaces the hold,
+  preserving the original usage and the settlement separately. A model outside the equivalences explicitly
+  listed in version 2 `model_capabilities.equivalent_models` leaves the charge for reconciliation.
+- The helper uses Pillow to decode PNG/JPEG captures and input assets, including in dry runs.
+  `image-assets` also decodes generated output before writing it, with status
+  `generated_not_approved_for_use`. For another variant from an identical image payload, pass
+  `--variant-reason` and remain within the existing authorization.

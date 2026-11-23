@@ -291,7 +291,7 @@ Agregado: FAIL prevalece, seguido de BLOCKED, PASS WITH WARNINGS e PASS. Mesmo c
 
 ## Integração com frontend design QA
 
-Esta seção só se aplica quando uma invocação de `$qa-projects` realmente abrange mudança de apresentação ou interação.
+A integração se aplica a mudanças de apresentação ou interação em web, desktop ou aplicativo, desde o desenvolvimento.
 Ler, copiar ou editar esta skill e seus agents não inicia QA de um produto.
 
 - Preserve a decisão `current`/`isolated` desta skill. Sem `--env`, pergunte pelo ambiente em cada nova execução antes
@@ -305,7 +305,7 @@ Ler, copiar ou editar esta skill e seus agents não inicia QA de um produto.
   transversais; `frontend-doc-agent` implementa componentes, estados, contratos e testes; `frontend-visual-quality`
   orienta direção, captura e observação consultiva; esta skill executa QA real, valida regressões, classifica resultados
   e decide o aceite a partir das evidências.
-- Na revisão visual, declare antes as telas, regiões, estados e plataformas cobertos e vincule cada critério às capturas
+- Na revisão visual, registre a matriz versionada antes das consultas. Declare telas, regiões, estados e plataformas e vincule cada critério às capturas
   requeridas. Registre build servido, origem/configuração/direção/assets por fingerprint, ambiente, dispositivo/janela,
   viewport e escala. Não use `HEAD` sozinho como identidade do build.
 - Uma resposta do modelo não aprova o projeto. Compare o conteúdo da direção adotada, os findings completos e a revisão

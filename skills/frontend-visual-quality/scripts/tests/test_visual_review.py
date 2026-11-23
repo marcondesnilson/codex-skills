@@ -70,7 +70,7 @@ def response_bytes(result=None, status="completed", usage=True, refusal=False, i
         "output": [{"type": "message", "content": output_content}],
     }
     if usage:
-        response["usage"] = {"input_tokens": 700, "output_tokens": 100, "total_tokens": 800}
+        response["usage"] = {"input_tokens": 700, "output_tokens": 100, "total_tokens": 800, "input_tokens_details": {"image_tokens": 200}}
     return json.dumps(response).encode()
 
 

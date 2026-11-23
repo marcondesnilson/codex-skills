@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import hashlib
-import json
 from pathlib import Path
 import re
 
 from visual_review import (
     ReviewError,
+    atomic_write,
     canonical_json,
     exclusive_task_lock,
     has_symlink_component,
@@ -19,6 +18,8 @@ from visual_review import (
     read_task,
     write_json,
 )
+
+from review_evidence import consolidated_coverage, current_attempts, direction_hash
 
 
 CHECK_STATUSES = {"PASS", "FAIL", "BLOCKED", "PASS WITH WARNINGS"}
@@ -51,7 +52,7 @@ def validate_acceptance_plan(value: object) -> dict:
         if not isinstance(item, dict) or set(item) != {"id", "category", "required", "description"}:
             raise ReviewError("Each acceptance check must contain id, category, required, and description.")
         identifier = item["id"]
-        if not isinstance(identifier, str) or not re.fullmatch(r"[a-z][a-z0-9_-]{1,63}", identifier) or identifier in ids:
+        if not isinstance(identifier, str) or not re.fullmatch(r"[a-z][a-z0-9_-]{1,63}", identifier) or identifier == "external_visual_review" or identifier in ids:
             raise ReviewError("Acceptance check IDs must be unique lowercase identifiers.")
         if not isinstance(item["category"], str) or item["category"] not in CHECK_CATEGORIES or not isinstance(item["required"], bool):
             raise ReviewError(f"Acceptance check {identifier} has an invalid category or required flag.")
@@ -60,8 +61,6 @@ def validate_acceptance_plan(value: object) -> dict:
         ids.add(identifier)
         normalized.append(dict(item))
     if value["frontend_impact"]:
-        if "external_visual_review" in ids:
-            raise ReviewError("The external visual review gate is derived from frontend_impact and must not be user-supplied.")
         normalized.append({
             "id": "external_visual_review",
             "category": "VISUAL",
@@ -87,6 +86,36 @@ def validate_build_context(value: object) -> dict:
     return value
 
 
+def _pending_report(manifest: dict, reason: str) -> bytes:
+    return (f"# QA acceptance report: {manifest['task_id']}\n\n"
+            f"Result: **pending_revalidation**\n\n{reason}\n").encode("utf-8")
+
+
+def invalidate_acceptance(task_dir: Path, manifest: dict, state: dict, reason: str) -> None:
+    """Publish the pending barrier under the task lock before saving new evidence."""
+    if not manifest.get("acceptance_plan"):
+        return
+    atomic_write(task_dir / "report.md", _pending_report(manifest, reason))
+    manifest.pop("conclusion", None)
+    manifest["overall_conclusion"] = "pending_revalidation"
+    manifest["pending"] = [reason]
+    write_json(task_dir / "manifest.json", manifest)
+    state.pop("conclusion", None)
+
+
+def current_acceptance(task_dir: Path, manifest: dict, state: dict) -> dict:
+    conclusion = state.get("conclusion")
+    overall = manifest.get("overall_conclusion")
+    if conclusion and conclusion == manifest.get("conclusion") and overall == conclusion.get("result"):
+        try:
+            if (task_dir / "report.md").read_bytes() == _report_text(manifest, conclusion).encode("utf-8"):
+                return {"valid": True, "result": overall, "conclusion": conclusion}
+        except OSError:
+            pass
+    pending = "pending" if overall in (None, "pending") and not conclusion else "pending_revalidation"
+    return {"valid": False, "result": pending, "conclusion": None}
+
+
 def record_build_context(task_dir: Path, build_file: Path) -> dict:
     task_dir = task_dir.expanduser().resolve()
     context = validate_build_context(read_json(build_file.expanduser(), 64 * 1024))
@@ -95,6 +124,7 @@ def record_build_context(task_dir: Path, build_file: Path) -> dict:
         manifest, state, _ = read_task(task_dir)
         previous = state.get("build_fingerprint")
         if previous != fingerprint:
+            invalidate_acceptance(task_dir, manifest, state, "Served build changed.")
             state.setdefault("build_history", []).append({
                 "fingerprint": fingerprint,
                 "previous_fingerprint": previous,
@@ -105,9 +135,6 @@ def record_build_context(task_dir: Path, build_file: Path) -> dict:
             manifest["build_context"] = context
             manifest["build_fingerprint"] = fingerprint
             manifest["build_context_recorded_at"] = iso_now()
-            if previous is not None:
-                manifest["overall_conclusion"] = "pending_revalidation"
-                manifest["pending"] = list(dict.fromkeys(manifest.get("pending", []) + ["Served build changed; affected checks and visual evidence must be revalidated."]))
         write_json(task_dir / "state.json", state)
         write_json(task_dir / "manifest.json", manifest)
     return {"task_id": manifest["task_id"], "build_fingerprint": fingerprint, "changed": previous != fingerprint}
@@ -152,11 +179,14 @@ def record_check(
         if check_id == "external_visual_review":
             if not related_call_id:
                 raise ReviewError("External visual review needs a related completed review call ID.")
-            attempt = next((item for item in state.get("attempts", []) if item.get("call_id") == related_call_id), None)
-            if not attempt or attempt.get("operation") != "visual_review" or attempt.get("status") != "completed":
-                raise ReviewError("External visual review evidence must link to a completed visual review call.")
-            if attempt.get("build_fingerprint") != state.get("build_fingerprint"):
-                raise ReviewError("External visual review belongs to a stale served build.")
+            attempts = current_attempts(manifest, state)
+            attempt = attempts[-1] if attempts else None
+            if not attempt or attempt.get("call_id") != related_call_id:
+                raise ReviewError("External visual review must link to the latest attempt for this build, direction, and matrix.")
+            if status == "PASS":
+                _, missing = consolidated_coverage(task_dir, manifest, state, attempts)
+                if missing:
+                    raise ReviewError("Visual coverage is incomplete or its evidence is invalid.")
         result = {
             "check_id": check_id,
             "category": check["category"],
@@ -167,39 +197,36 @@ def record_check(
             "evidence_sha256": digest,
             "evidence_bytes": size,
             "related_call_id": related_call_id,
+            "review_ids": sorted(consolidated_coverage(task_dir, manifest, state, attempts)[0]) if check_id == "external_visual_review" else [],
+            "direction_sha256": direction_hash(manifest) if check_id == "external_visual_review" or check["category"] in {"UI", "UX", "VISUAL", "ACCESSIBILITY"} else None,
             "build_fingerprint": state.get("build_fingerprint"),
             "recorded_at": iso_now(),
         }
+        invalidate_acceptance(task_dir, manifest, state, f"Check {check_id} changed.")
         state.setdefault("check_results", {})[check_id] = result
         write_json(task_dir / "state.json", state)
     return result
 
 
-def _visual_gate_state(manifest: dict, state: dict) -> tuple[str | None, str | None]:
+def _visual_gate_state(task_dir: Path, manifest: dict, state: dict) -> tuple[str | None, str | None]:
     if not manifest.get("review_required"):
         return None, None
     if not manifest.get("api_execution_authorized"):
         return "BLOCKED", "External visual review is required, but this task has no API execution authorization."
-    attempts = [
-        item for item in state.get("attempts", [])
-        if item.get("operation") == "visual_review" and item.get("review_kind", "visual") == "visual"
-    ]
+    attempts = current_attempts(manifest, state)
     if not attempts:
-        return "BLOCKED", "Required external visual review has not been received."
-    attempt = attempts[-1]
-    if attempt.get("status") != "completed":
+        return "BLOCKED", "Required visual review lacks complete criterion-to-screen coverage for the served build, direction, or matrix."
+    if attempts[-1].get("status") != "completed":
         return "BLOCKED", "Latest required visual review did not complete successfully."
-    if attempt.get("build_fingerprint") != state.get("build_fingerprint") or not state.get("build_fingerprint"):
-        return "BLOCKED", "Visual review evidence is missing or stale for the currently recorded served build."
-    if not attempt.get("coverage_complete"):
-        return "BLOCKED", "Visual review lacks complete criterion-to-screen coverage."
-    if not attempt.get("coverage_matrix"):
-        return "BLOCKED", "Visual review has no recorded coverage matrix."
-    if any(entry.get("status") != "evaluated" or not entry.get("evidence_capture_ids") for entry in attempt["coverage_matrix"]):
-        return "BLOCKED", "At least one required visual coverage entry lacks a grounded evaluation."
+    direction = direction_hash(manifest)
+    if direction and state.get("build_context", {}).get("visual_direction_sha256") != direction:
+        return "BLOCKED", "The adopted visual direction has not been recorded in the served build."
+    calls, missing = consolidated_coverage(task_dir, manifest, state, attempts)
+    if missing:
+        return "BLOCKED", "Visual review lacks complete criterion-to-screen coverage or intact evidence: " + ", ".join(missing)
     result = state.get("check_results", {}).get("external_visual_review")
-    if not result or result.get("related_call_id") != attempt.get("call_id"):
-        return "BLOCKED", "Codex evaluation of the latest consultive visual review is not recorded."
+    if not result or result.get("related_call_id") != attempts[-1]["call_id"] or set(result.get("review_ids", [])) != calls:
+        return "BLOCKED", "Codex evaluation of the consolidated visual evidence is not recorded."
     return None, None
 
 
@@ -252,7 +279,15 @@ def finalize_task(task_dir: Path) -> dict:
                     statuses.append("BLOCKED")
                     pending.append(f"Required check {check['id']} has no recorded evidence.")
                 continue
-            if result.get("required") != check["required"] or not _check_evidence_valid(task_dir, result, state):
+            if check["id"] == "external_visual_review" and result["status"] != "FAIL":
+                attempts = current_attempts(manifest, state)
+                if not attempts or result.get("related_call_id") != attempts[-1]["call_id"]:
+                    statuses.append("BLOCKED")
+                    pending.append("The recorded visual check does not evaluate the latest applicable review.")
+                    continue
+            if (result.get("required") != check["required"] or not _check_evidence_valid(task_dir, result, state)
+                    or check["category"] in {"UI", "UX", "VISUAL", "ACCESSIBILITY"}
+                    and result.get("direction_sha256") != direction_hash(manifest)):
                 statuses.append("BLOCKED")
                 pending.append(f"Check {check['id']} evidence is invalid, modified, or stale.")
                 continue
@@ -260,7 +295,7 @@ def finalize_task(task_dir: Path) -> dict:
             if result["status"] in {"BLOCKED", "FAIL", "PASS WITH WARNINGS"}:
                 pending.append(f"Check {check['id']} is {result['status']}.")
         if manifest.get("review_required"):
-            visual_status, visual_pending = _visual_gate_state(manifest, state)
+            visual_status, visual_pending = _visual_gate_state(task_dir, manifest, state)
             if visual_status:
                 statuses.append(visual_status)
                 pending.append(visual_pending)
@@ -286,11 +321,12 @@ def finalize_task(task_dir: Path) -> dict:
             "pending": list(dict.fromkeys(pending)),
             "finalized_at": iso_now(),
         }
+        invalidate_acceptance(task_dir, manifest, state, "Publishing a freshly evaluated conclusion.")
         state["conclusion"] = conclusion
         manifest["conclusion"] = conclusion
         manifest["overall_conclusion"] = overall
         manifest["pending"] = conclusion["pending"]
         write_json(task_dir / "state.json", state)
         write_json(task_dir / "manifest.json", manifest)
-        (task_dir / "report.md").write_text(_report_text(manifest, conclusion), encoding="utf-8")
+        atomic_write(task_dir / "report.md", _report_text(manifest, conclusion).encode("utf-8"))
         return conclusion
