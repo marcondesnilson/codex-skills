@@ -171,6 +171,14 @@ Consult the applicable release-management reference from the installed `global-d
 notes, compatibility, migrations or significant features. Keep technical release details separate from user-facing notes;
 review licensing when dependencies/distribution change and privacy when data processing changes. Update only artifacts
 required by the project or the actual impact, without creating empty changelogs or public legal pages by default.
+
+When the project's instructions define release notes, follow their paths and formats. After setting `VERSION` and
+before staging, write or update the notes for that exact version from the reviewed changes, in Brazilian Portuguese.
+Write the technical Git or GitHub note with relevant changes, migration or compatibility details and verified references.
+When the project defines an in-app note and the changes affect users, write a separate text for that audience. Describe
+what users can do or notice and any action they need to take. Keep internal failures, logs, infrastructure details and
+sensitive information out of that text. Stage the applicable notes with `VERSION` and the changes they describe.
+
 This integration does not change authorization, repository discovery, HEAD-based versioning, staging or push boundaries.
 
 ## Classify Semantic Versioning
@@ -244,6 +252,7 @@ git diff --cached --check
 Confirm that the staged diff is exactly the reviewed complete diff, including additions and deletions; `VERSION` is staged
 and byte-exact; no secret or unwanted artifact is included; documentation matches the final behavior; the focused code
 quality review remains valid; and the SemVer class still fits the staged impact.
+When release notes are required, confirm the audience-specific files are staged for the exact version in `VERSION`.
 
 If staging changes the impact assessment, recalculate the class and version, rerun affected validations, restage, and
 repeat the review.

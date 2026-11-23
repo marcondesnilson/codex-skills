@@ -72,6 +72,11 @@ complexidade, duplicação, tratamento de erros e testes somente no escopo tocad
 Apenas instalar ou citar essa skill na documentação não autoriza commits, e ela nunca executa push sem um pedido separado
 e explícito.
 
+Quando o projeto define notas de release, o `commit-projects` prepara os textos em português do Brasil após atualizar
+o `VERSION`. A nota técnica segue o formato do projeto. Se houver uma nota prevista para o aplicativo e a mudança
+afetar usuários, a skill prepara um texto próprio para esse público. As notas aplicáveis entram no mesmo commit da
+versão que descrevem. Consulte o [procedimento da skill](skills/commit-projects/SKILL.md#release-governance-integration).
+
 ## Arquitetura e carregamento progressivo
 
 O `global-doc-agent` coordena **o que** considerar; especialistas definem **como** implementar. A consulta entre skills
